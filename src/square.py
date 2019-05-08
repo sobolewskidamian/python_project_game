@@ -56,5 +56,3 @@ class Square:
             self.x = -self.width + 1
         elif self.x <= -self.width:
             self.x = SCREENWIDTH - 1
-
-        print(self.total_y)

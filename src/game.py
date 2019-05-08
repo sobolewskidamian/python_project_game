@@ -5,6 +5,7 @@ from pygame.locals import *
 
 from server import Server
 from pipe import Pipe
+from square import Square
 
 pygame.init()
 
@@ -89,15 +90,15 @@ class Game:
         pygame.draw.rect(self.SCREEN, (255, 0, 0),
                          pygame.Rect(client.x, client.y, client.width, client.height))
         all_clients = self.server.get_all_clients()
-        if self.client in all_clients:
-            del all_clients[self.client]
+        if self.client.pid in all_clients:
+            del all_clients[self.client.pid]
 
-        # for c in all_clients:
-        c = all_clients[0]
-        if abs(c.total_y - self.client.total_y) < SCREENHEIGHT / 2 + c.height:
-            pygame.draw.rect(self.SCREEN, (0, 0, 0),
-                             pygame.Rect(c.x, SCREENHEIGHT / 2 - (c.total_y - self.client.total_y + c.height / 2), c.width,
-                                         c.height))
+        for c in all_clients:
+            if abs(all_clients[c].total_y - self.client.total_y) < SCREENHEIGHT / 2 + all_clients[c].height:
+                pygame.draw.rect(self.SCREEN, (0, 0, 0),
+                                 pygame.Rect(all_clients[c].x, SCREENHEIGHT / 2 - (all_clients[c].total_y - self.client.total_y + all_clients[c].height / 2),
+                                             all_clients[c].width,
+                                             all_clients[c].height))
 
     def draw_pipes(self):
         for pipe in self.pipes:
