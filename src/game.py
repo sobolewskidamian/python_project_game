@@ -88,6 +88,16 @@ class Game:
     def draw_square(self, client):
         pygame.draw.rect(self.SCREEN, (255, 0, 0),
                          pygame.Rect(client.x, client.y, client.width, client.height))
+        all_clients = self.server.get_all_clients()
+        if self.client in all_clients:
+            del all_clients[self.client]
+
+        # for c in all_clients:
+        c = all_clients[0]
+        if abs(c.total_y - self.client.total_y) < SCREENHEIGHT / 2 + c.height:
+            pygame.draw.rect(self.SCREEN, (0, 0, 0),
+                             pygame.Rect(c.x, SCREENHEIGHT / 2 - (c.total_y - self.client.total_y + c.height / 2), c.width,
+                                         c.height))
 
     def draw_pipes(self):
         for pipe in self.pipes:
@@ -119,6 +129,8 @@ class Game:
 
         for pipe in self.pipes:
             pipe.update()
+        if len(self.pipes) > 0:
+            self.pipes[0].update_square()
 
     def add_pipe(self, y_value, delay):
         server_pipe = self.server.get_pipe(self.score + 1)

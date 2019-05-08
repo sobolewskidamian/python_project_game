@@ -15,6 +15,7 @@ class Square:
         self.height = self.width
         self.x = SCREENWIDTH / 2 - self.width / 2
         self.y = SCREENHEIGHT / 2 - self.height / 2
+        self.total_y = 0
         self.XVALUE = 3
         self.YVALUE = -10
         self.x_value = 0
@@ -55,3 +56,5 @@ class Square:
             self.x = -self.width + 1
         elif self.x <= -self.width:
             self.x = SCREENWIDTH - 1
+
+        print(self.total_y)

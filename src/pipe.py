@@ -37,6 +37,10 @@ class Pipe:
         if self.y_value < 0 and self.square.y <= SCREENHEIGHT / 2 - self.height / 2:
             self.y -= self.y_value
 
+    def update_square(self):
+        if self.y_value < 0 and self.square.y <= SCREENHEIGHT / 2 - self.height / 2:
+            self.square.total_y -= self.y_value
+
     def synchronize_with_other_pipes(self, y_value, delay):
         self.y_value = y_value
         self.jump_delay = delay
