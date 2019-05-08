@@ -3,8 +3,7 @@ import main
 
 
 class Generator:
-    def get_width_beetween_two_pipes(self, level):
-        return 100
-
-    def get_width_left(self, width_beetween_two_pipes):
-        return main.SCREENWIDTH - width_beetween_two_pipes - 50
+    def get_width_left_and_beetween(self, level):
+        beetween = 100
+        left = main.SCREENWIDTH - beetween - 50
+        return left, beetween
