@@ -7,7 +7,7 @@ from objects.submitBox import SubmitBox
 
 from game import Game
 
-FPS = 50
+FPS = 70
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
@@ -16,20 +16,18 @@ def main():
     global SCREEN, FPSCLOCK
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
-    SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT])
+    SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT],0,32)
     pygame.display.set_caption('Vertical game')
 
+    # nick = get_nick()
     while True:
-        # nick = get_nick()
-        clean_screen()
-
         game = Game(SCREEN, FPSCLOCK, FPS)
         game.play()
 
 
 def clean_screen():
     SCREEN.fill((248, 248, 255))
-    pygame.display.flip()
+    pygame.display.update()
 
 
 def get_nick():
