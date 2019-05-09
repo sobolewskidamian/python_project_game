@@ -12,6 +12,7 @@ SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
 
+
 class Game:
     def __init__(self, SCREEN, FPSCLOCK, FPS):
         self.SCREEN = SCREEN
