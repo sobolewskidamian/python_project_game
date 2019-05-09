@@ -14,7 +14,6 @@ SCREENHEIGHT = 512
 hi_type = 18
 
 
-
 class Game:
     def __init__(self, SCREEN, FPSCLOCK, FPS):
         self.SCREEN = SCREEN
@@ -128,6 +127,8 @@ class Game:
                 delay = pipe.jump_delay
                 self.score += 1
                 print(self.score)
+
+
 
         if in_middle or len(self.pipes) == 0:
             self.add_pipe(y_value, delay)
