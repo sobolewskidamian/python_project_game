@@ -126,6 +126,8 @@ class Game:
                 self.score += 1
                 print(self.score)
 
+
+
         if in_middle or len(self.pipes) == 0:
             self.add_pipe(y_value, delay)
 
