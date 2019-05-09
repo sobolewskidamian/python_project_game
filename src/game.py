@@ -11,6 +11,8 @@ pygame.init()
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
+hi_type = 20
+
 
 class Game:
     def __init__(self, SCREEN, FPSCLOCK, FPS):
