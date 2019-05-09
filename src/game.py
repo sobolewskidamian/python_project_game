@@ -11,6 +11,8 @@ pygame.init()
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
+hi_type = 18
+
 
 
 class Game:
