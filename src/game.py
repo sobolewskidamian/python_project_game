@@ -49,6 +49,7 @@ class Game:
                 self.clean_screen()
                 self.draw_square(self.client)
                 self.draw_pipes()
+                self.draw_score()
 
                 pygame.display.update()
                 self.FPSCLOCK.tick(self.FPS)
@@ -56,6 +57,7 @@ class Game:
     def show_screen_before_game(self):
         self.clean_screen()
         self.draw_square(self.client)
+        self.draw_score()
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
 
@@ -97,7 +99,7 @@ class Game:
             if abs(actual_client.total_y - self.client.total_y) < SCREENHEIGHT / 2 + actual_client.height:
                 pygame.draw.rect(self.SCREEN, (0, 0, 0),
                                  pygame.Rect(actual_client.x, SCREENHEIGHT / 2 - (
-                                             actual_client.total_y - self.client.total_y + actual_client.height / 2),
+                                         actual_client.total_y - self.client.total_y + actual_client.height / 2),
                                              actual_client.width,
                                              actual_client.height))
 
@@ -107,6 +109,11 @@ class Game:
             pygame.draw.rect(self.SCREEN, (255, 0, 0),
                              pygame.Rect(SCREENWIDTH - pipe.right_pipe_width, pipe.y, pipe.right_pipe_width,
                                          pipe.height))
+
+    def draw_score(self):
+        font = pygame.font.Font(None, 50)
+        text = font.render(str(self.score), True, (0, 0, 0))
+        self.SCREEN.blit(text, (0, 0))
 
     def move_pipes(self):
         in_middle = False
@@ -124,7 +131,6 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.score += 1
-                print(self.score)
 
         if in_middle or len(self.pipes) == 0:
             self.add_pipe(y_value, delay)
