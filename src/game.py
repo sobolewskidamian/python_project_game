@@ -46,7 +46,7 @@ class Game:
                 self.watch_for_clickes()
                 self.client.update()
                 self.move_pipes()
-                # self.check_collisions()
+                self.check_collisions()
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -133,8 +133,6 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.score += 1
-
-
 
         if in_middle or len(self.pipes) == 0:
             self.add_pipe(y_value, delay)
