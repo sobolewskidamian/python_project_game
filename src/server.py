@@ -10,6 +10,7 @@ BUFFERSIZE = 512
 outgoing = []
 clients = {}
 pipes = {}
+port = 4321
 
 
 def update_world(message):
@@ -62,6 +63,7 @@ def update_world(message):
         playerid = arr[1]
         if playerid in clients:
             del clients[playerid]
+            print('Disconnect player: ', str(playerid))
 
 
 class MainServer(asyncore.dispatcher):
@@ -69,7 +71,7 @@ class MainServer(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind(('', port))
-        self.listen(1000)
+        self.listen(10)
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -81,34 +83,16 @@ class MainServer(asyncore.dispatcher):
         conn.send(pickle.dumps(['id update', client_id]))
         SecondaryServer(conn)
 
-    def add_client(self, pid):
-        clients[pid] = Square(pid)
-
-    def get_client(self, pid):
-        return clients[pid]
-
-    def get_all_clients(self):
-        return clients
-
-    def add_pipe(self, level):
-        if level not in self.pipes:
-            left, right = Generator().get_width_left_and_beetween(level)
-            self.pipes[level] = [left, right]
-
-    def get_pipe(self, level):
-        self.add_pipe(level)
-        return self.pipes[level]
-
 
 class SecondaryServer(asyncore.dispatcher_with_send):
     def handle_read(self):
-        recievedData = self.recv(BUFFERSIZE)
-        if recievedData:
-            update_world(recievedData)
+        recieved_data = self.recv(BUFFERSIZE)
+        if recieved_data:
+            update_world(recieved_data)
         else:
             self.close()
 
 
 if __name__ == '__main__':
-    MainServer(4321)
+    MainServer(port)
     asyncore.loop()
