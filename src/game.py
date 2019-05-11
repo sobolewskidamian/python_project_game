@@ -1,17 +1,19 @@
 import sys
-import os
 import pygame
 from pygame.locals import *
+import pickle
+import select
+import socket
 
-from server import Server
 from pipe import Pipe
+from square import Square
 
 pygame.init()
 
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
-
-hi_type = 18
+multiplayer = True
+BUFFERSIZE = 2048
 
 
 class Game:
@@ -20,7 +22,6 @@ class Game:
         self.FPSCLOCK = FPSCLOCK
         self.FPS = FPS
 
-        self.server = Server()
         self.score = 0
         self.game_over = False
         self.started = False
@@ -28,9 +29,12 @@ class Game:
         self.pipes = []
         self.pipes_under_middle = []
 
-        self.server = Server()
-        self.server.add_client(os.getpid())
-        self.client = self.server.get_client(os.getpid())
+        # self.server = Server()
+        # self.server.add_client(os.getpid())
+        # self.client = self.server.get_client(os.getpid())
+        self.s = None
+        self.client = Square(-1)
+        self.clients = {}
 
     def restart(self):
         self.started = False
@@ -42,11 +46,21 @@ class Game:
         self.show_screen_before_game()
 
         if self.started:
+            if multiplayer:
+                server_address = '192.168.1.104'
+                self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.s.connect((server_address, 4321))
+                self.update_multiplayer()
+
             while not self.client.dead:
+                self.update_multiplayer()
                 self.watch_for_clickes()
                 self.client.update()
                 self.move_pipes()
-                self.check_collisions()
+                # self.check_collisions()
+
+                self.s.send(pickle.dumps(
+                    ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y]))
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -55,6 +69,26 @@ class Game:
 
                 pygame.display.update()
                 self.FPSCLOCK.tick(self.FPS)
+
+    def update_multiplayer(self):
+        ins, outs, ex = select.select([self.s], [], [], 0)
+        for inm in ins:
+            game_event = pickle.loads(inm.recv(BUFFERSIZE))
+            if game_event[0] == 'id update':
+                self.client.pid = game_event[1]
+                print(str(self.client.pid))
+            if game_event[0] == 'position update':
+                game_event.pop(0)
+                for act_client in game_event:
+                    if act_client[0] != self.client.pid:
+                        self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
+            if game_event[0] == 'pipe location':
+                game_event.pop(0)
+                for act_pipe in game_event:
+                    if act_pipe[0] == self.client.pid:
+                        pipe = self.pipes[len(self.pipes) - 1]
+                        pipe.left_pipe_width = act_pipe[1]
+                        pipe.right_pipe_width = act_pipe[2]
 
     def show_screen_before_game(self):
         self.clean_screen()
@@ -80,10 +114,11 @@ class Game:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
                     self.client.escape_pressed = True
+                    self.s.send(pickle.dumps(['delete client', self.client.pid]))
                 self.started = True
 
     def watch_for_start(self):
-        self.move_pipes()
+        # self.move_pipes()
         self.watch_for_clickes()
 
     def clean_screen(self):
@@ -92,18 +127,22 @@ class Game:
     def draw_square(self, client):
         pygame.draw.rect(self.SCREEN, (255, 0, 0),
                          pygame.Rect(client.x, client.y, client.width, client.height))
-        all_clients = self.server.get_all_clients()
-        if self.client.pid in all_clients:
-            del all_clients[self.client.pid]
 
-        for pid in all_clients:
-            actual_client = all_clients[pid]
-            if abs(actual_client.total_y - self.client.total_y) < SCREENHEIGHT / 2 + actual_client.height:
-                pygame.draw.rect(self.SCREEN, (0, 0, 0),
-                                 pygame.Rect(actual_client.x, SCREENHEIGHT / 2 - (
-                                         actual_client.total_y - self.client.total_y + actual_client.height / 2),
-                                             actual_client.width,
-                                             actual_client.height))
+        for pid in self.clients:
+            actual_client = self.clients[pid]
+            actual_client_x = actual_client[0]
+            actual_client_total_y = actual_client[1]
+            actual_client_y = actual_client[2]
+
+            if abs(actual_client_total_y - self.client.total_y) < SCREENHEIGHT / 2 + self.client.height:
+                pygame.draw.rect(self.SCREEN,
+                                 (0, 0, 0),
+                                 pygame.Rect(actual_client_x,
+                                             SCREENHEIGHT / 2 - (
+                                                     actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y,
+                                             self.client.width,
+                                             self.client.height))
+                print(SCREENHEIGHT / 2 - (actual_client_total_y - self.client.total_y + self.client.height / 2))
 
     def draw_pipes(self):
         for pipe in self.pipes:
@@ -123,6 +162,9 @@ class Game:
         delay = 0
 
         for pipe in self.pipes:
+            if pipe.left_pipe_width == 0 and pipe.right_pipe_width == 0:
+                self.get_pipe_size_from_server()
+
             if pipe.y > SCREENHEIGHT:
                 self.pipes.remove(pipe)
                 self.pipes_under_middle.remove(pipe)
@@ -139,16 +181,18 @@ class Game:
 
         for pipe in self.pipes:
             pipe.update()
+
         if len(self.pipes) > 0:
             self.pipes[0].update_square()
 
+    def get_pipe_size_from_server(self):
+        self.s.send(pickle.dumps(['pipe location', self.client.pid, self.score + 1]))
+
     def add_pipe(self, y_value, delay):
-        server_pipe = self.server.get_pipe(self.score + 1)
-
-        pipe = Pipe(server_pipe[0], server_pipe[1], self.client)
-        self.pipes.append(pipe)
-
+        pipe = Pipe(0, 0, self.client)
         pipe.synchronize_with_other_pipes(y_value, delay)
+        self.pipes.append(pipe)
+        self.get_pipe_size_from_server()
 
     def check_collisions(self):
         for pipe in self.pipes:

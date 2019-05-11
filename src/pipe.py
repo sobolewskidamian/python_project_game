@@ -28,10 +28,13 @@ class Pipe:
         if self.jump_delay > 0:
             self.jump_delay -= 1
 
-        if self.left_pressed or self.right_pressed:
+        if self.left_pressed:
             self.y_value = self.YVALUE
             self.jump_delay = 5
             self.left_pressed = False
+        elif self.right_pressed:
+            self.y_value = self.YVALUE
+            self.jump_delay = 5
             self.right_pressed = False
 
         if self.y_value < 0 and self.square.y <= SCREENHEIGHT / 2 - self.height / 2:
