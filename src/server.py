@@ -16,7 +16,13 @@ port = 4321
 def update_world(message):
     arr = pickle.loads(message)
 
-    if arr[0] == 'position update':
+    if arr[0] == 'add client':
+        id = arr[1]
+        client = Square(id)
+        clients[id] = client
+        print("Client", id, "added")
+
+    elif arr[0] == 'position update':
         playerid = arr[1]
         x = arr[2]
         total_y = arr[3]
@@ -65,6 +71,9 @@ def update_world(message):
             del clients[playerid]
             print('Disconnect player: ', str(playerid))
 
+        if len(clients) == 0:
+            pipes.clear()
+
 
 class MainServer(asyncore.dispatcher):
     def __init__(self, port):
@@ -78,9 +87,7 @@ class MainServer(asyncore.dispatcher):
         print('Connection address:' + addr[0] + " " + str(addr[1]))
         outgoing.append(conn)
         client_id = random.randint(1000, 1000000)
-        client = Square(client_id)
-        clients[client_id] = client
-        conn.send(pickle.dumps(['id update', client_id]))
+        conn.send(pickle.dumps(['add client', client_id]))
         SecondaryServer(conn)
 
 

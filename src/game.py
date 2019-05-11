@@ -77,9 +77,9 @@ class Game:
             ins, outs, ex = select.select([self.s], [], [], 0)
             for inm in ins:
                 game_event = pickle.loads(inm.recv(BUFFERSIZE))
-                if game_event[0] == 'id update':
+                if game_event[0] == 'add client':
                     self.client.pid = game_event[1]
-                    print(str(self.client.pid))
+                    self.add_client()
                 if game_event[0] == 'position update':
                     game_event.pop(0)
                     for act_client in game_event:
@@ -181,6 +181,8 @@ class Game:
                 self.score += 1
 
         if in_middle or len(self.pipes) == 0:
+            if in_middle and multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[len(self.pipes) - 1].right_pipe_width == 0:
+                self.wait_for_server()
             self.add_pipe(y_value, delay)
 
         for pipe in self.pipes:
@@ -189,11 +191,23 @@ class Game:
         if len(self.pipes) > 0:
             self.pipes[0].update_square()
 
+    def wait_for_server(self):
+        self.s.connect((server_address, port))
+        while True:
+            data = self.s.recv(4096)
+            if len(data) == 0:
+                self.s.connect((server_address, port))
+            else:
+                break
+
     def get_pipe_size_from_server(self):
         self.s.send(pickle.dumps(['pipe location', self.client.pid, self.score + 1]))
 
     def delete_client(self):
         self.s.send(pickle.dumps(['delete client', self.client.pid]))
+
+    def add_client(self):
+        self.s.send(pickle.dumps(['add client', self.client.pid]))
 
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
