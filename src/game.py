@@ -15,6 +15,8 @@ SCREENWIDTH = 288
 SCREENHEIGHT = 512
 multiplayer = True
 BUFFERSIZE = 2048
+server_address = '192.168.1.104'
+port = 4321
 
 
 class Game:
@@ -48,9 +50,8 @@ class Game:
 
         if self.started:
             if multiplayer:
-                server_address = '192.168.1.104'
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.s.connect((server_address, 4321))
+                self.s.connect((server_address, port))
                 self.update_multiplayer()
 
             while not self.client.dead:
@@ -103,6 +104,7 @@ class Game:
     def watch_for_clickes(self):
         for event in pygame.event.get():
             if event.type == QUIT:
+                self.delete_client()
                 pygame.quit()
                 sys.exit()
 
@@ -118,7 +120,7 @@ class Game:
                 elif event.key == K_ESCAPE:
                     self.client.escape_pressed = True
                     if multiplayer:
-                        self.s.send(pickle.dumps(['delete client', self.client.pid]))
+                        self.delete_client()
                 self.started = True
 
     def watch_for_start(self):
@@ -192,7 +194,8 @@ class Game:
     def get_pipe_size_from_server(self):
         self.s.send(pickle.dumps(['pipe location', self.client.pid, self.score + 1]))
 
-
+    def delete_client(self):
+        self.s.send(pickle.dumps(['delete client', self.client.pid]))
 
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
@@ -210,6 +213,7 @@ class Game:
             if pipe.collides(self.client.x, self.client.y, self.client.width, self.client.height):
                 self.game_over = True
                 self.client.dead = True
+                self.delete_client()
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
             self.game_over = True
