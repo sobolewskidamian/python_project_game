@@ -109,5 +109,6 @@ class SecondaryServer(asyncore.dispatcher_with_send):
             self.close()
 
 
-MainServer(4321)
-asyncore.loop()
+if __name__ == '__main__':
+    MainServer(4321)
+    asyncore.loop()

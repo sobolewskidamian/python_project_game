@@ -7,6 +7,7 @@ import socket
 
 from pipe import Pipe
 from square import Square
+from generator import Generator
 
 pygame.init()
 
@@ -59,8 +60,9 @@ class Game:
                 self.move_pipes()
                 # self.check_collisions()
 
-                self.s.send(pickle.dumps(
-                    ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y]))
+                if multiplayer:
+                    self.s.send(pickle.dumps(
+                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y]))
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -71,24 +73,25 @@ class Game:
                 self.FPSCLOCK.tick(self.FPS)
 
     def update_multiplayer(self):
-        ins, outs, ex = select.select([self.s], [], [], 0)
-        for inm in ins:
-            game_event = pickle.loads(inm.recv(BUFFERSIZE))
-            if game_event[0] == 'id update':
-                self.client.pid = game_event[1]
-                print(str(self.client.pid))
-            if game_event[0] == 'position update':
-                game_event.pop(0)
-                for act_client in game_event:
-                    if act_client[0] != self.client.pid:
-                        self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
-            if game_event[0] == 'pipe location':
-                game_event.pop(0)
-                for act_pipe in game_event:
-                    if act_pipe[0] == self.client.pid:
-                        pipe = self.pipes[len(self.pipes) - 1]
-                        pipe.left_pipe_width = act_pipe[1]
-                        pipe.right_pipe_width = act_pipe[2]
+        if multiplayer:
+            ins, outs, ex = select.select([self.s], [], [], 0)
+            for inm in ins:
+                game_event = pickle.loads(inm.recv(BUFFERSIZE))
+                if game_event[0] == 'id update':
+                    self.client.pid = game_event[1]
+                    print(str(self.client.pid))
+                if game_event[0] == 'position update':
+                    game_event.pop(0)
+                    for act_client in game_event:
+                        if act_client[0] != self.client.pid:
+                            self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
+                if game_event[0] == 'pipe location':
+                    game_event.pop(0)
+                    for act_pipe in game_event:
+                        if act_pipe[0] == self.client.pid:
+                            pipe = self.pipes[len(self.pipes) - 1]
+                            pipe.left_pipe_width = act_pipe[1]
+                            pipe.right_pipe_width = act_pipe[2]
 
     def show_screen_before_game(self):
         self.clean_screen()
@@ -114,7 +117,8 @@ class Game:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
                     self.client.escape_pressed = True
-                    self.s.send(pickle.dumps(['delete client', self.client.pid]))
+                    if multiplayer:
+                        self.s.send(pickle.dumps(['delete client', self.client.pid]))
                 self.started = True
 
     def watch_for_start(self):
@@ -188,11 +192,18 @@ class Game:
     def get_pipe_size_from_server(self):
         self.s.send(pickle.dumps(['pipe location', self.client.pid, self.score + 1]))
 
+
+
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
         pipe.synchronize_with_other_pipes(y_value, delay)
         self.pipes.append(pipe)
-        self.get_pipe_size_from_server()
+        if multiplayer:
+            self.get_pipe_size_from_server()
+        else:
+            left, right = Generator().get_width_left_and_beetween(self.score)
+            pipe.left_pipe_width = left
+            pipe.right_pipe_width = right
 
     def check_collisions(self):
         for pipe in self.pipes:
