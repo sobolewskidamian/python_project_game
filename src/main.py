@@ -21,8 +21,8 @@ def main():
 
     # nick = get_nick()
     nick = 'damian'
+    game = Game(nick, SCREEN, FPSCLOCK, FPS)
     while True:
-        game = Game(nick, SCREEN, FPSCLOCK, FPS)
         game.play()
 
 

@@ -22,17 +22,18 @@ clients = {}
 pipes = {}
 amount_of_players = 0
 game_is_running = False
-server = None
+dead_players = {}
 
 
 # port = 4321
 
 
 def update_world(message):
+    global game_is_running
     arr = pickle.loads(message)
 
     if arr[0] == 'add client':
-        if len(clients) < amount_of_players:
+        if len(clients) < amount_of_players and not game_is_running:
             id = arr[1]
             nick = arr[2]
             client = Square(id)
@@ -40,9 +41,26 @@ def update_world(message):
             clients[id] = client
             print("Client", id, "added")
 
-        if len(clients) == amount_of_players:
-            global game_is_running
-            game_is_running = True
+            if len(clients) == amount_of_players:
+                game_is_running = True
+
+                for i in outgoing:
+                    update = ['start game']
+
+                    try:
+                        i.send(pickle.dumps(update))
+                    except Exception:
+                        outgoing.remove(i)
+                        continue
+        else:
+            for i in outgoing:
+                update = ['game is running', arr[1]]
+
+                try:
+                    i.send(pickle.dumps(update))
+                except Exception:
+                    outgoing.remove(i)
+                    continue
 
     elif arr[0] == 'position update':
         playerid = arr[1]
@@ -92,15 +110,15 @@ def update_world(message):
     elif arr[0] == 'delete client':
         playerid = arr[1]
         if playerid in clients:
+            dead_players[clients[playerid].nick] = clients[playerid].score
             del clients[playerid]
             print('Disconnect player: ', str(playerid))
 
         if len(clients) == 0:
             pipes.clear()
             game_is_running = False
-            asyncore.close_all()
-
-    show_server_info()
+            print_stats()
+            print("============== NEW GAME ==============")
 
 
 class MainServer(asyncore.dispatcher):
@@ -109,6 +127,9 @@ class MainServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind(('', port))
         self.listen(10)
+        print("-------------------------")
+        print(port, amount_of_players)
+        print("-------------------------")
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -128,78 +149,27 @@ class SecondaryServer(asyncore.dispatcher_with_send):
             self.close()
 
 
-def clean_screen():
-    SCREEN.fill((248, 248, 255))
-    pygame.display.update()
-
-
-def set_options():
-    clean_screen()
-    SCREEN.blit(pygame.font.Font(None, 25).render('Amount of players:', True, pygame.Color('lightskyblue3')),
-                (20, SCREENHEIGHT / 2 - 50))
-    input_box = InputBox(200, SCREENHEIGHT / 2 - 55, 100, 25)
-
-    SCREEN.blit(pygame.font.Font(None, 25).render('Port:', True, pygame.Color('lightskyblue3')),
-                (20, SCREENHEIGHT / 2 - 20))
-    input_box2 = InputBox(200, SCREENHEIGHT / 2 - 25, 100, 25)
-
-    submit_box = SubmitBox(SCREENWIDTH / 2 - 65, SCREENHEIGHT / 2 + 50, 130, 32, "Run server")
-
-    while not submit_box.get_active() or input_box.get_text() == '' or input_box2.get_text() == '':
-        submit_box.set_not_active()
-
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            input_box.handle_event(event)
-            input_box2.handle_event(event)
-            submit_box.handle_event(event)
-
-        input_box.draw(SCREEN)
-        input_box2.draw(SCREEN)
-        submit_box.draw(SCREEN)
-
-        pygame.display.flip()
-        FPSCLOCK.tick(FPS)
-    return [input_box.get_text(), input_box2.get_text()]
-
-
-def show_players():
-    SCREEN.fill((248, 248, 255))
-    players = ''
-    for client in clients:
-        players += clients[client].nick + ' ' + str(clients[client].score) + '\n'
-    SCREEN.blit(pygame.font.Font(None, 25).render(players, True, pygame.Color('lightskyblue3')),
-                (20, SCREENHEIGHT / 2 - 50))
-
-    pygame.display.update()
-    FPSCLOCK.tick(FPS)
-
-
-def show_server_info():
-    show_players()
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
+def print_stats():
+    winner_nick = ''
+    winner_score = 0
+    for nick in dead_players:
+        print(nick, dead_players[nick])
+        if dead_players[nick] > winner_score:
+            winner_nick = nick
+            winner_score = dead_players[nick]
+    print()
+    print("Winner:", winner_nick, "score:", winner_score)
 
 
 def main():
     global SCREEN, FPSCLOCK, amount_of_players
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT], 0, 32)
-    pygame.display.set_caption('Vertical game server')
 
-    while True:
-        options = set_options()
-        amount_of_players = int(options[0])
-        port = int(options[1])
-        clean_screen()
+    # options = set_options()
+    amount_of_players = 2  # int(options[0])
+    port = 4321  # int(options[1])
 
-        MainServer(port)
-        asyncore.loop()
+    MainServer(port)
+    asyncore.loop()
 
 
 if __name__ == '__main__':

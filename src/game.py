@@ -1,9 +1,12 @@
 import sys
+import time
+
 import pygame
 from pygame.locals import *
 import pickle
 import select
 import socket
+import random
 
 from pipe import Pipe
 from square import Square
@@ -15,7 +18,7 @@ SCREENWIDTH = 288
 SCREENHEIGHT = 512
 multiplayer = True
 BUFFERSIZE = 2048
-server_address = '192.168.1.104'
+server_address = '127.0.0.1'  # '192.168.1.104'
 port = 4321
 
 
@@ -28,6 +31,7 @@ class Game:
         self.nick = nick
         self.game_over = False
         self.started = False
+        self.wait_for_multiplayer_game = True
         self.restart_delay = 0
         self.pipes = []
         self.pipes_under_middle = []
@@ -36,23 +40,50 @@ class Game:
         # self.server.add_client(os.getpid())
         # self.client = self.server.get_client(os.getpid())
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_connected = False
         self.client = Square(-1)
         self.clients = {}
 
     def restart(self):
         self.started = False
-        self.game_over = False
+        self.game_over = True
+        self.client.dead = True
+        self.wait_for_multiplayer_game = True
+        if multiplayer:
+            self.delete_client()
         self.restart_delay = 0
+        self.pipes.clear()
+        self.pipes_under_middle.clear()
+        self.client = Square(random.randint(1000, 1000000))
+        self.clients.clear()
+        self.play()
 
     def play(self):
-        self.watch_for_start()
-        self.show_screen_before_game()
+        self.clean_screen()
+        pygame.display.update()
+        self.FPSCLOCK.tick(self.FPS)
 
-        if self.started:
-            if multiplayer:
+        if multiplayer:
+            if not self.server_connected:
                 self.s.connect((server_address, port))
+                self.server_connected = True
+            else:
+                self.add_client()
+
+        if multiplayer:
+            while self.wait_for_multiplayer_game:
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        self.delete_client()
+                        pygame.quit()
+                        sys.exit()
                 self.update_multiplayer()
 
+        self.show_screen_before_game()
+        while not self.started:
+            self.watch_for_start()
+
+        if self.started:
             while not self.client.dead:
                 self.update_multiplayer()
                 self.watch_for_clickes()
@@ -62,7 +93,8 @@ class Game:
 
                 if multiplayer:
                     self.s.send(pickle.dumps(
-                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y, self.client.score]))
+                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
+                         self.client.score]))
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -76,22 +108,34 @@ class Game:
         if multiplayer:
             ins, outs, ex = select.select([self.s], [], [], 0)
             for inm in ins:
-                game_event = pickle.loads(inm.recv(BUFFERSIZE))
-                if game_event[0] == 'add client':
-                    self.client.pid = game_event[1]
-                    self.add_client()
-                if game_event[0] == 'position update':
-                    game_event.pop(0)
-                    for act_client in game_event:
-                        if act_client[0] != self.client.pid:
-                            self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
-                if game_event[0] == 'pipe location':
-                    game_event.pop(0)
-                    for act_pipe in game_event:
-                        if act_pipe[0] == self.client.pid:
-                            pipe = self.pipes[len(self.pipes) - 1]
-                            pipe.left_pipe_width = act_pipe[1]
-                            pipe.right_pipe_width = act_pipe[2]
+                try:
+                    game_event = pickle.loads(inm.recv(BUFFERSIZE))
+
+                    if game_event[0] == 'add client':
+                        self.client.pid = game_event[1]
+                        self.add_client()
+                    if game_event[0] == 'position update':
+                        game_event.pop(0)
+                        for act_client in game_event:
+                            if act_client[0] != self.client.pid:
+                                self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
+                    if game_event[0] == 'pipe location':
+                        game_event.pop(0)
+                        for act_pipe in game_event:
+                            if act_pipe[0] == self.client.pid:
+                                pipe = self.pipes[len(self.pipes) - 1]
+                                pipe.left_pipe_width = act_pipe[1]
+                                pipe.right_pipe_width = act_pipe[2]
+                    if game_event[0] == 'start game':
+                        # TODO
+                        # animation 3 2 1 start
+                        self.wait_for_multiplayer_game = False
+                    if game_event[0] == 'game is running':
+                        if game_event[1] == self.client.pid:
+                            time.sleep(0.5)
+                            self.add_client()
+                except Exception as e:
+                    print(end='')
 
     def show_screen_before_game(self):
         self.clean_screen()
@@ -117,9 +161,8 @@ class Game:
                     for pipe in self.pipes:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
-                    self.client.escape_pressed = True
-                    if multiplayer:
-                        self.delete_client()
+                    # self.client.escape_pressed = True
+                    self.restart()
                 self.started = True
 
     def watch_for_start(self):
@@ -224,10 +267,7 @@ class Game:
     def check_collisions(self):
         for pipe in self.pipes:
             if pipe.collides(self.client.x, self.client.y, self.client.width, self.client.height):
-                self.game_over = True
-                self.client.dead = True
-                self.delete_client()
+                self.restart()
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
-            self.game_over = True
-            self.client.dead = True
+            self.restart()
