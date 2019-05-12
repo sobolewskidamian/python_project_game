@@ -1,3 +1,5 @@
+import time
+
 import pygame
 from pygame.locals import *
 import sys
@@ -32,16 +34,16 @@ def update_world(message):
     global game_is_running, added_players
     try:
         arr = pickle.loads(message)
-        print(arr[0])
 
         if arr[0] == 'delete client':
             playerid = arr[1]
             if playerid in clients:
-                dead_players[clients[playerid].nick] = clients[playerid].score
+                dead_players[clients[playerid]] = clients[playerid].score
                 del clients[playerid]
                 print('Disconnect player: ', str(playerid))
 
             if len(clients) == 0:
+                time.sleep(0.1)
                 pipes.clear()
                 print_stats()
                 dead_players.clear()
@@ -157,9 +159,9 @@ class MainServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind(('', port))
         self.listen(10)
-        print("-------------------------")
+        print("================")
         print(port, amount_of_players)
-        print("-------------------------")
+        print("================")
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -182,13 +184,15 @@ class SecondaryServer(asyncore.dispatcher_with_send):
 def print_stats():
     winner_nick = ''
     winner_score = 0
-    for nick in dead_players:
-        print(nick, dead_players[nick])
-        if dead_players[nick] > winner_score:
-            winner_nick = nick
-            winner_score = dead_players[nick]
-    print()
-    print("Winner:", winner_nick, "score:", winner_score)
+    for player in dead_players:
+        print(player.nick, dead_players[player])
+        if dead_players[player] > winner_score:
+            winner_nick = player.nick
+            winner_score = dead_players[player]
+    print("=============")
+    print("Winner:\t", winner_nick)
+    print("Score:\t", winner_score)
+    print("=============")
 
 
 def main():

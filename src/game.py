@@ -54,7 +54,6 @@ class Game:
         self.pipes.clear()
         self.pipes_under_middle.clear()
         self.client = Square(random.randint(1000, 1000000))
-        self.clients.clear()
         self.play()
 
     def play(self):
@@ -96,7 +95,7 @@ class Game:
                 self.watch_for_clickes()
                 self.client.update()
                 self.move_pipes()
-                # self.check_collisions()
+                self.check_collisions()
 
                 if multiplayer:
                     self.s.send(pickle.dumps(
@@ -152,6 +151,7 @@ class Game:
                                 pipe.right_pipe_width = act_pipe[2]
                     if game_event[0] == 'start game':
                         self.wait_for_multiplayer_game = False
+                        self.clients.clear()
                     if game_event[0] == 'start adding' and not self.client_added:
                         self.add_client()
                     if game_event[0] == 'game is running':
@@ -170,7 +170,8 @@ class Game:
     def watch_for_clickes(self):
         for event in pygame.event.get():
             if event.type == QUIT:
-                self.delete_client()
+                if multiplayer:
+                    self.delete_client()
                 pygame.quit()
                 sys.exit()
 
