@@ -29,32 +29,98 @@ dead_players = {}
 
 
 def update_world(message):
-    global game_is_running
-    arr = pickle.loads(message)
+    global game_is_running, added_players
+    try:
+        arr = pickle.loads(message)
+        print(arr[0])
 
-    if arr[0] == 'add client':
-        if len(clients) < amount_of_players and not game_is_running:
-            id = arr[1]
-            nick = arr[2]
-            client = Square(id)
-            client.nick = nick
-            clients[id] = client
-            print("Client", id, "added")
+        if arr[0] == 'delete client':
+            playerid = arr[1]
+            if playerid in clients:
+                dead_players[clients[playerid].nick] = clients[playerid].score
+                del clients[playerid]
+                print('Disconnect player: ', str(playerid))
 
-            if len(clients) == amount_of_players:
-                game_is_running = True
+            if len(clients) == 0:
+                pipes.clear()
+                print_stats()
+                dead_players.clear()
+                print("============== NEW GAME ==============")
+                game_is_running = False
 
                 for i in outgoing:
-                    update = ['start game']
+                    update = ['start adding']
+                    try:
+                        i.send(pickle.dumps(update))
+                    except Exception:
+                        outgoing.remove(i)
+                        continue
+
+        elif arr[0] == 'add client':
+            id = arr[1]
+            if len(clients) < amount_of_players and not game_is_running:
+                nick = arr[2]
+                if id not in clients:
+                    client = Square(id)
+                    client.nick = nick
+                    clients[id] = client
+                    print("Client", id, "added")
+                    for i in outgoing:
+                        update = ['client added', id]
+                        try:
+                            i.send(pickle.dumps(update))
+                        except Exception:
+                            outgoing.remove(i)
+                            continue
+
+                    if len(clients) == amount_of_players:
+                        game_is_running = True
+                        for i in outgoing:
+                            start = ['start game']
+                            try:
+                                i.send(pickle.dumps(start))
+                            except Exception:
+                                outgoing.remove(i)
+                                continue
+            else:
+                for i in outgoing:
+                    update = ['game is running', id]
 
                     try:
                         i.send(pickle.dumps(update))
                     except Exception:
                         outgoing.remove(i)
                         continue
-        else:
+
+        elif arr[0] == 'could start game':
+            if len(clients) == amount_of_players:
+                for i in outgoing:
+                    start = ['start game']
+                    try:
+                        i.send(pickle.dumps(start))
+                    except Exception:
+                        outgoing.remove(i)
+                        continue
+
+        elif arr[0] == 'position update':
+            playerid = arr[1]
+            x = arr[2]
+            total_y = arr[3]
+            y = arr[4]
+            score = arr[5]
+
+            if playerid == -1 or playerid not in clients: return
+
+            clients[playerid].x = x
+            clients[playerid].total_y = total_y
+            clients[playerid].y = y
+            clients[playerid].score = score
+
             for i in outgoing:
-                update = ['game is running', arr[1]]
+                update = [arr[0]]
+
+                for key, value in clients.items():
+                    update.append([value.pid, value.x, value.total_y, value.y])
 
                 try:
                     i.send(pickle.dumps(update))
@@ -62,63 +128,27 @@ def update_world(message):
                     outgoing.remove(i)
                     continue
 
-    elif arr[0] == 'position update':
-        playerid = arr[1]
-        x = arr[2]
-        total_y = arr[3]
-        y = arr[4]
-        score = arr[5]
+        elif arr[0] == 'pipe location':
+            playerid = arr[1]
+            score = arr[2]
 
-        if playerid == -1 or playerid not in clients: return
+            if playerid not in clients: return
 
-        clients[playerid].x = x
-        clients[playerid].total_y = total_y
-        clients[playerid].y = y
-        clients[playerid].score = score
+            if score not in pipes:
+                left, right = Generator().get_width_left_and_beetween(score)
+                pipes[score] = [left, right]
 
-        for i in outgoing:
-            update = [arr[0]]
+            for i in outgoing:
+                update = [arr[0], [playerid, pipes[score][0], pipes[score][1]]]
 
-            for key, value in clients.items():
-                update.append([value.pid, value.x, value.total_y, value.y])
+                try:
+                    i.send(pickle.dumps(update))
+                except Exception:
+                    outgoing.remove(i)
+                    continue
 
-            try:
-                i.send(pickle.dumps(update))
-            except Exception:
-                outgoing.remove(i)
-                continue
-
-    elif arr[0] == 'pipe location':
-        playerid = arr[1]
-        score = arr[2]
-
-        if playerid not in clients: return
-
-        if score not in pipes:
-            left, right = Generator().get_width_left_and_beetween(score)
-            pipes[score] = [left, right]
-
-        for i in outgoing:
-            update = [arr[0], [playerid, pipes[score][0], pipes[score][1]]]
-
-            try:
-                i.send(pickle.dumps(update))
-            except Exception:
-                outgoing.remove(i)
-                continue
-
-    elif arr[0] == 'delete client':
-        playerid = arr[1]
-        if playerid in clients:
-            dead_players[clients[playerid].nick] = clients[playerid].score
-            del clients[playerid]
-            print('Disconnect player: ', str(playerid))
-
-        if len(clients) == 0:
-            pipes.clear()
-            game_is_running = False
-            print_stats()
-            print("============== NEW GAME ==============")
+    except Exception:
+        print(end='')
 
 
 class MainServer(asyncore.dispatcher):
