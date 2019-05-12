@@ -11,6 +11,8 @@ GRAVITY = 0.5
 class Square:
     def __init__(self, pid):
         self.pid = pid
+        self.nick = ''
+        self.score = 0
         self.width = 20
         self.height = self.width
         self.x = SCREENWIDTH / 2 - self.width / 2
