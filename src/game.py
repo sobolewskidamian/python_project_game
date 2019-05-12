@@ -20,12 +20,12 @@ port = 4321
 
 
 class Game:
-    def __init__(self, SCREEN, FPSCLOCK, FPS):
+    def __init__(self, nick, SCREEN, FPSCLOCK, FPS):
         self.SCREEN = SCREEN
         self.FPSCLOCK = FPSCLOCK
         self.FPS = FPS
 
-        self.score = 0
+        self.nick = nick
         self.game_over = False
         self.started = False
         self.restart_delay = 0
@@ -62,7 +62,7 @@ class Game:
 
                 if multiplayer:
                     self.s.send(pickle.dumps(
-                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y]))
+                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y, self.client.score]))
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -157,7 +157,7 @@ class Game:
 
     def draw_score(self):
         font = pygame.font.Font(None, 50)
-        text = font.render(str(self.score), True, (0, 0, 0))
+        text = font.render(str(self.client.score), True, (0, 0, 0))
         self.SCREEN.blit(text, (0, 0))
 
     def move_pipes(self):
@@ -178,10 +178,11 @@ class Game:
                 self.pipes_under_middle.append(pipe)
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
-                self.score += 1
+                self.client.score += 1
 
         if in_middle or len(self.pipes) == 0:
-            if in_middle and multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[len(self.pipes) - 1].right_pipe_width == 0:
+            if in_middle and multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
+                len(self.pipes) - 1].right_pipe_width == 0:
                 self.wait_for_server()
             self.add_pipe(y_value, delay)
 
@@ -201,13 +202,13 @@ class Game:
                 break
 
     def get_pipe_size_from_server(self):
-        self.s.send(pickle.dumps(['pipe location', self.client.pid, self.score + 1]))
+        self.s.send(pickle.dumps(['pipe location', self.client.pid, self.client.score + 1]))
 
     def delete_client(self):
         self.s.send(pickle.dumps(['delete client', self.client.pid]))
 
     def add_client(self):
-        self.s.send(pickle.dumps(['add client', self.client.pid]))
+        self.s.send(pickle.dumps(['add client', self.client.pid, self.nick]))
 
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
@@ -216,7 +217,7 @@ class Game:
         if multiplayer:
             self.get_pipe_size_from_server()
         else:
-            left, right = Generator().get_width_left_and_beetween(self.score)
+            left, right = Generator().get_width_left_and_beetween(self.client.score)
             pipe.left_pipe_width = left
             pipe.right_pipe_width = right
 

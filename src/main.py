@@ -16,12 +16,13 @@ def main():
     global SCREEN, FPSCLOCK
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
-    SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT],0,32)
+    SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT], 0, 32)
     pygame.display.set_caption('Vertical game')
 
     # nick = get_nick()
+    nick = 'damian'
     while True:
-        game = Game(SCREEN, FPSCLOCK, FPS)
+        game = Game(nick, SCREEN, FPSCLOCK, FPS)
         game.play()
 
 
