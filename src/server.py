@@ -54,6 +54,15 @@ def update_world(message):
 
         elif arr[0] == 'add client':
             id = arr[1]
+            if id in clients:
+                for i in outgoing:
+                    update = ['client added', id]
+                    try:
+                        i.send(pickle.dumps(update))
+                    except Exception:
+                        outgoing.remove(i)
+                        continue
+                return
             if len(clients) < amount_of_players and not game_is_running:
                 nick = arr[2]
                 if id not in clients:
