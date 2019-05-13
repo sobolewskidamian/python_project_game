@@ -187,7 +187,7 @@ class Game:
                         game_event.pop(0)
                         for act_client in game_event:
                             if act_client[0] != self.client.pid:
-                                self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3]]
+                                self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3], act_client[4]]
                     if game_event[0] == 'pipe location':
                         game_event.pop(0)
                         for act_pipe in game_event:
@@ -256,6 +256,7 @@ class Game:
             actual_client_x = actual_client[0]
             actual_client_total_y = actual_client[1]
             actual_client_y = actual_client[2]
+            actual_client_nick = actual_client[3]
 
             if abs(actual_client_total_y - self.client.total_y) < SCREENHEIGHT / 2 + self.client.height:
                 pygame.draw.rect(self.SCREEN,
@@ -265,6 +266,10 @@ class Game:
                                                      actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y,
                                              self.client.width,
                                              self.client.height))
+                font = pygame.font.Font(None, 15)
+                text = font.render(actual_client_nick, True, (0, 0, 0))
+                self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
+                        actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
 
     def draw_pipes(self):
         for pipe in self.pipes:
@@ -328,8 +333,8 @@ class Game:
     def send_position_update(self):
         if self.server_connected:
             self.s.send(pickle.dumps(
-            ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
-             self.client.score]))
+                ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
+                 self.client.score]))
 
     def get_pipe_size_from_server(self):
         if self.server_connected:

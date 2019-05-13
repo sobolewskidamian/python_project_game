@@ -20,14 +20,14 @@ def main():
     pygame.display.set_caption('Vertical game')
 
     nick = get_nick()
-    #nick = 'damian'
+    # nick = 'damian'
     game = Game(nick, SCREEN, FPSCLOCK, FPS)
     while True:
         if game.game_ended:
             game.game_ended = False
             mode = choose_mode()
             if mode:
-                multiplayer = get_multiplayer_data()  #['127.0.0.1', 4320] #
+                multiplayer = ['127.0.0.1', 4320]  # get_multiplayer_data()  #
                 game.multiplayer = True
                 game.server_address = multiplayer[0]
                 game.port = multiplayer[1]
@@ -66,8 +66,8 @@ def get_multiplayer_data():
                 (10, SCREENHEIGHT / 2 - 120))
     input_box = InputBox(10, SCREENHEIGHT / 2 - 88, SCREENWIDTH - 20, 32)
     SCREEN.blit(pygame.font.Font(None, 32).render('Server port:', True, pygame.Color('lightskyblue3')),
-                (10, SCREENHEIGHT / 2-40))
-    input_box2 = InputBox(10, SCREENHEIGHT / 2 -8, SCREENWIDTH - 20, 32)
+                (10, SCREENHEIGHT / 2 - 40))
+    input_box2 = InputBox(10, SCREENHEIGHT / 2 - 8, SCREENWIDTH - 20, 32)
     submit_box = SubmitBox(SCREENWIDTH / 2 - 28, SCREENHEIGHT / 2 + 50, 56, 32, "Play")
 
     while not submit_box.get_active() or input_box.get_text() == '' or input_box2.get_text() == '':

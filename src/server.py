@@ -126,7 +126,7 @@ def update_world(message):
                 update = [arr[0]]
 
                 for key, value in clients.items():
-                    update.append([value.pid, value.x, value.total_y, value.y])
+                    update.append([value.pid, value.x, value.total_y, value.y, clients[playerid].nick])
 
                 try:
                     i.send(pickle.dumps(update))
