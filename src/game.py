@@ -62,7 +62,6 @@ class Game:
             if not self.server_connected:
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.s.connect((self.server_address, self.port))
-                self.server_connected = True
             else:
                 seconds = time.time()
                 seconds_bool = True
@@ -118,25 +117,26 @@ class Game:
         self.show_screen_before_game()
         while not self.started:
             self.watch_for_start()
+            self.update_multiplayer()
 
-        if self.started:
-            while not self.client.dead:
-                self.update_multiplayer()
-                self.watch_for_clickes()
-                self.client.update()
-                self.move_pipes()
-                self.check_collisions()
+        while not self.client.dead:
+            self.update_multiplayer()
+            self.watch_for_clickes()
+            self.client.update()
+            self.move_pipes()
+            self.check_collisions()
 
-                if self.multiplayer:
-                    self.send_position_update()
+            if self.multiplayer:
+                self.send_position_update()
 
-                self.clean_screen()
-                self.draw_square(self.client)
-                self.draw_pipes()
-                self.draw_score()
+            self.clean_screen()
+            self.draw_square(self.client)
+            self.draw_pipes()
+            self.draw_score()
 
-                pygame.display.update()
-                self.FPSCLOCK.tick(self.FPS)
+            pygame.display.update()
+            self.FPSCLOCK.tick(self.FPS)
+
         self.restart()
 
     def ready_steady_go_text(self, number):
@@ -177,8 +177,10 @@ class Game:
             for inm in ins:
                 try:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
+                    print(game_event[0])
 
                     if game_event[0] == 'add client':
+                        self.server_connected = True
                         self.client.pid = game_event[1]
                         self.add_client()
                     if game_event[0] == 'client added' and game_event[1] == self.client.pid:
@@ -187,7 +189,8 @@ class Game:
                         game_event.pop(0)
                         for act_client in game_event:
                             if act_client[0] != self.client.pid:
-                                self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3], act_client[4]]
+                                self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3],
+                                                               act_client[4]]
                     if game_event[0] == 'pipe location':
                         game_event.pop(0)
                         for act_pipe in game_event:
@@ -200,9 +203,13 @@ class Game:
                         self.clients.clear()
                     if game_event[0] == 'start adding' and not self.client_added:
                         self.add_client()
-                    if game_event[0] == 'game is running':
+                    if game_event[0] == 'client removed':
                         if game_event[1] == self.client.pid:
-                            return
+                            self.game_ended = True
+                            self.client.dead = True
+                            self.started = True
+                            self.s.close()
+                            self.server_connected = False
                 except Exception as e:
                     print(end='')
 
