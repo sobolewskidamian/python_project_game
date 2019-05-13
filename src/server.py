@@ -1,8 +1,4 @@
 import time
-
-import pygame
-from pygame.locals import *
-import sys
 import socket
 import asyncore
 import random
@@ -10,13 +6,6 @@ import pickle
 
 from square import Square
 from generator import Generator
-
-from objects.inputBox import InputBox
-from objects.submitBox import SubmitBox
-
-FPS = 70
-SCREENWIDTH = 800
-SCREENHEIGHT = 600
 
 BUFFERSIZE = 512
 outgoing = []
@@ -26,9 +15,10 @@ amount_of_players = 0
 game_is_running = False
 dead_players = {}
 
-
-# port = 4321
-
+def print_new_game():
+    print("╔============================================╗")
+    print("╠================= NEW GAME =================╣")
+    print("╚============================================╝")
 
 def update_world(message):
     global game_is_running, added_players
@@ -47,7 +37,7 @@ def update_world(message):
                 pipes.clear()
                 print_stats()
                 dead_players.clear()
-                print("============== NEW GAME ==============")
+                print_new_game()
                 game_is_running = False
 
                 for i in outgoing:
@@ -159,9 +149,11 @@ class MainServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind(('', port))
         self.listen(10)
-        print("================")
-        print(port, amount_of_players)
-        print("================")
+        print("╔==================")
+        print("║ port:\t\t", port, )
+        print("║ players:\t", amount_of_players)
+        print("╚==================")
+        print_new_game()
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -182,6 +174,10 @@ class SecondaryServer(asyncore.dispatcher_with_send):
 
 
 def print_stats():
+    print()
+    print("╔=============╗")
+    print("╠=== STATS ===╣")
+    print("╚=============╝")
     winner_nick = ''
     winner_score = 0
     for player in dead_players:
@@ -189,16 +185,18 @@ def print_stats():
         if dead_players[player] > winner_score:
             winner_nick = player.nick
             winner_score = dead_players[player]
-    print("=============")
-    print("Winner:\t", winner_nick)
-    print("Score:\t", winner_score)
-    print("=============")
+
+    print()
+    print("╔======================")
+    print("║ Winner:", winner_nick)
+    print("╠======================")
+    print("║ Score:", winner_score)
+    print("╚======================")
 
 
 def main():
-    global SCREEN, FPSCLOCK, amount_of_players
+    global amount_of_players
 
-    # options = set_options()
     amount_of_players = 2  # int(options[0])
     port = 4321  # int(options[1])
 
