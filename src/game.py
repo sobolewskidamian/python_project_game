@@ -63,23 +63,43 @@ class Game:
                 self.s.connect((self.server_address, self.port))
                 self.server_connected = True
             else:
+                seconds = time.time()
                 while not self.client_added:
-                    self.update_multiplayer()
+                    self.draw_text_at_center("Waiting for joining the server...")
+                    if self.game_ended:
+                        break
+                    if time.time() - seconds > 0.5:
+                        self.add_client()
+                        self.update_multiplayer()
+                        seconds = time.time()
                     for event in pygame.event.get():
                         if event.type == QUIT:
                             self.delete_client()
                             pygame.quit()
                             sys.exit()
+                        if event.type == KEYDOWN and event.key == K_ESCAPE:
+                            self.game_ended = True
+                            self.client.dead = True
+                            self.started = True
 
+            seconds = time.time()
             while self.wait_for_multiplayer_game:
-                time.sleep(0.5)
-                self.could_start_game()
-                self.update_multiplayer()
+                self.draw_text_at_center("Waiting for players...")
+                if self.game_ended:
+                    break
+                if time.time() - seconds > 0.5:
+                    self.could_start_game()
+                    self.update_multiplayer()
+                    seconds = time.time()
                 for event in pygame.event.get():
                     if event.type == QUIT:
                         self.delete_client()
                         pygame.quit()
                         sys.exit()
+                    if event.type == KEYDOWN and event.key == K_ESCAPE:
+                        self.game_ended = True
+                        self.client.dead = True
+                        self.started = True
             self.ready_steady_go()
 
         self.show_screen_before_game()
@@ -107,14 +127,27 @@ class Game:
         self.restart()
 
     def ready_steady_go_text(self, number):
-        self.clean_screen()
-        self.draw_square(self.client)
-        self.draw_score()
-        font = pygame.font.Font(None, 50)
-        text = font.render(str(number), True, (0, 0, 0))
-        self.SCREEN.blit(text, (SCREENWIDTH / 2 - 10, SCREENHEIGHT / 2 - 25))
-        pygame.display.update()
-        self.FPSCLOCK.tick(1)
+        seconds = time.time()
+        while time.time() - seconds < 1:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    self.delete_client()
+                    pygame.quit()
+                    sys.exit()
+                if event.type == KEYDOWN and event.key == K_ESCAPE:
+                    self.game_ended = True
+                    self.client.dead = True
+                    self.started = True
+            if self.game_ended:
+                break
+            self.clean_screen()
+            self.draw_square(self.client)
+            self.draw_score()
+            font = pygame.font.Font(None, 50)
+            text = font.render(str(number), True, (0, 0, 0))
+            self.SCREEN.blit(text, (SCREENWIDTH / 2 - 10, SCREENHEIGHT / 2 - 25))
+            pygame.display.update()
+            self.FPSCLOCK.tick(self.FPS)
 
     def ready_steady_go(self):
         self.ready_steady_go_text(3)
@@ -223,6 +256,13 @@ class Game:
         font = pygame.font.Font(None, 50)
         text = font.render(str(self.client.score), True, (0, 0, 0))
         self.SCREEN.blit(text, (0, 0))
+
+    def draw_text_at_center(self, text_to_draw):
+        self.clean_screen()
+        font = pygame.font.Font(None, 16)
+        text = font.render(text_to_draw, True, (0, 0, 0))
+        self.SCREEN.blit(text, (10, SCREENHEIGHT / 2 - 8))
+        pygame.display.update()
 
     def move_pipes(self):
         in_middle = False
