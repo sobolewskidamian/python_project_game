@@ -15,10 +15,7 @@ pygame.init()
 
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
-multiplayer = True
 BUFFERSIZE = 2048
-server_address = '127.0.0.1'  # '192.168.1.104'
-port = 4321
 
 
 class Game:
@@ -26,9 +23,12 @@ class Game:
         self.SCREEN = SCREEN
         self.FPSCLOCK = FPSCLOCK
         self.FPS = FPS
+        self.multiplayer = False
+        self.port = 0
+        self.server_address = ''
 
         self.nick = nick
-        self.game_over = False
+        self.game_ended = True
         self.started = False
         self.wait_for_multiplayer_game = True
         self.restart_delay = 0
@@ -43,26 +43,24 @@ class Game:
 
     def restart(self):
         self.started = False
-        self.game_over = True
         self.client.dead = True
         self.wait_for_multiplayer_game = True
         self.client_added = False
-        if multiplayer:
+        if self.multiplayer:
             self.delete_client()
         self.restart_delay = 0
         self.pipes.clear()
         self.pipes_under_middle.clear()
         self.client = Square(self.client.pid)
-        self.play()
 
     def play(self):
         self.clean_screen()
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
 
-        if multiplayer:
+        if self.multiplayer:
             if not self.server_connected:
-                self.s.connect((server_address, port))
+                self.s.connect((self.server_address, self.port))
                 self.server_connected = True
             else:
                 while not self.client_added:
@@ -96,7 +94,7 @@ class Game:
                 self.move_pipes()
                 self.check_collisions()
 
-                if multiplayer:
+                if self.multiplayer:
                     self.send_position_update()
 
                 self.clean_screen()
@@ -106,6 +104,7 @@ class Game:
 
                 pygame.display.update()
                 self.FPSCLOCK.tick(self.FPS)
+        self.restart()
 
     def ready_steady_go_text(self, number):
         self.clean_screen()
@@ -123,7 +122,7 @@ class Game:
         self.ready_steady_go_text(1)
 
     def update_multiplayer(self):
-        if multiplayer:
+        if self.multiplayer:
             ins, outs, ex = select.select([self.s], [], [], 0)
             for inm in ins:
                 try:
@@ -167,7 +166,7 @@ class Game:
     def watch_for_clickes(self):
         for event in pygame.event.get():
             if event.type == QUIT:
-                if multiplayer:
+                if self.multiplayer:
                     self.delete_client()
                 pygame.quit()
                 sys.exit()
@@ -183,7 +182,8 @@ class Game:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
                     # self.client.escape_pressed = True
-                    self.restart()
+                    self.game_ended = True
+                    self.client.dead = True
                 self.started = True
 
     def watch_for_start(self):
@@ -245,9 +245,9 @@ class Game:
                 self.client.score += 1
 
         if in_middle or len(self.pipes) == 0:
-            if in_middle and multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
-                len(self.pipes) - 1].right_pipe_width == 0:
-                self.wait_for_server()
+            # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
+            # len(self.pipes) - 1].right_pipe_width == 0:
+            # self.wait_for_server()
             self.add_pipe(y_value, delay)
 
         for pipe in self.pipes:
@@ -256,19 +256,18 @@ class Game:
         if len(self.pipes) > 0:
             self.pipes[0].update_square()
 
-    def wait_for_server(self):
-        # self.s.connect((server_address, port))
-        while True:
-            data = self.s.recv(4096)
-            if len(data) == 0:
-                self.s.connect((server_address, port))
-            else:
-                break
+    # def wait_for_server(self):
+    # while True:
+    # data = self.s.recv(4096)
+    # if len(data) == 0:
+    # self.s.connect((self.server_address, self.port))
+    # else:
+    # break
 
     def send_position_update(self):
         self.s.send(pickle.dumps(
-                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
-                         self.client.score]))
+            ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
+             self.client.score]))
 
     def get_pipe_size_from_server(self):
         self.s.send(pickle.dumps(['pipe location', self.client.pid, self.client.score + 1]))
@@ -286,7 +285,7 @@ class Game:
         pipe = Pipe(0, 0, self.client)
         pipe.synchronize_with_other_pipes(y_value, delay)
         self.pipes.append(pipe)
-        if multiplayer:
+        if self.multiplayer:
             self.get_pipe_size_from_server()
         else:
             left, right = Generator().get_width_left_and_beetween(self.client.score)
@@ -296,7 +295,7 @@ class Game:
     def check_collisions(self):
         for pipe in self.pipes:
             if pipe.collides(self.client.x, self.client.y, self.client.width, self.client.height):
-                self.restart()
+                self.client.dead = True
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
-            self.restart()
+            self.client.dead = True

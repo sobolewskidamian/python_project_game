@@ -19,11 +19,75 @@ def main():
     SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT], 0, 32)
     pygame.display.set_caption('Vertical game')
 
-    # nick = get_nick()
-    nick = 'damian'
+    nick = get_nick()
+    #nick = 'damian'
     game = Game(nick, SCREEN, FPSCLOCK, FPS)
     while True:
+        if game.game_ended:
+            game.game_ended = False
+            mode = choose_mode()
+            if mode:
+                multiplayer = get_multiplayer_data()  # ['127.0.0.1', 4320]
+                game.multiplayer = True
+                game.server_address = multiplayer[0]
+                game.port = multiplayer[1]
+            else:
+                game.multiplayer = False
         game.play()
+
+
+def choose_mode():
+    clean_screen()
+    submit_box = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 66, 150, 32, "Singleplayer")
+    submit_box2 = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 6, 150, 32, "Multiplayer")
+
+    while not submit_box.get_active() and not submit_box2.get_active():
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            submit_box.handle_event(event)
+            submit_box2.handle_event(event)
+
+        submit_box.draw(SCREEN)
+        submit_box2.draw(SCREEN)
+
+        pygame.display.flip()
+        FPSCLOCK.tick(FPS)
+    if submit_box2.get_active():
+        return True
+    else:
+        return False
+
+
+def get_multiplayer_data():
+    clean_screen()
+    SCREEN.blit(pygame.font.Font(None, 32).render('Server address:', True, pygame.Color('lightskyblue3')),
+                (10, SCREENHEIGHT / 2 - 120))
+    input_box = InputBox(10, SCREENHEIGHT / 2 - 88, SCREENWIDTH - 20, 32)
+    SCREEN.blit(pygame.font.Font(None, 32).render('Server port:', True, pygame.Color('lightskyblue3')),
+                (10, SCREENHEIGHT / 2-40))
+    input_box2 = InputBox(10, SCREENHEIGHT / 2 -8, SCREENWIDTH - 20, 32)
+    submit_box = SubmitBox(SCREENWIDTH / 2 - 28, SCREENHEIGHT / 2 + 50, 56, 32, "Play")
+
+    while not submit_box.get_active() or input_box.get_text() == '' or input_box2.get_text() == '':
+        submit_box.set_not_active()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            input_box.handle_event(event)
+            input_box2.handle_event(event)
+            submit_box.handle_event(event)
+
+        input_box.draw(SCREEN)
+        input_box2.draw(SCREEN)
+        submit_box.draw(SCREEN)
+
+        pygame.display.flip()
+        FPSCLOCK.tick(FPS)
+    return [input_box.get_text(), int(input_box2.get_text())]
 
 
 def clean_screen():
