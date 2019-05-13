@@ -19,9 +19,9 @@ last_access_time = time.time()
 
 
 def print_new_game():
-    print("╔============================================╗")
-    print("╠================= NEW GAME =================╣")
-    print("╚============================================╝")
+    print("╔════════════════════════════════════════════╗")
+    print("╠═════════════════ NEW GAME ═════════════════╣")
+    print("╚════════════════════════════════════════════╝")
 
 
 def update_world(message):
@@ -157,10 +157,10 @@ class MainServer(asyncore.dispatcher):
             print("Port", port, "is busy")
             exit(0)
         self.listen(10)
-        print("╔==================")
+        print("╔══════════════════════")
         print("║ port:\t\t", port, )
         print("║ players:\t", amount_of_players)
-        print("╚==================")
+        print("╚══════════════════════")
         print_new_game()
 
     def handle_accept(self):
@@ -186,9 +186,9 @@ class SecondaryServer(asyncore.dispatcher_with_send):
 
 def print_stats():
     print()
-    print("╔=============╗")
-    print("╠=== STATS ===╣")
-    print("╚=============╝")
+    print("╔═════════════╗")
+    print("╠═══ STATS ═══╣")
+    print("╚═════════════╝")
     winner_nick = ''
     winner_score = -1
     for player in dead_players:
@@ -198,11 +198,11 @@ def print_stats():
             winner_score = dead_players[player]
 
     print()
-    print("╔======================")
+    print("╔══════════════════════")
     print("║ Winner:", winner_nick)
-    print("╠======================")
+    print("╠══════════════════════")
     print("║ Score:", winner_score)
-    print("╚======================")
+    print("╚══════════════════════")
 
 
 def main(argv):
