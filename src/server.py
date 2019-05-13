@@ -1,3 +1,4 @@
+import sys
 import time
 import socket
 import asyncore
@@ -14,14 +15,17 @@ pipes = {}
 amount_of_players = 0
 game_is_running = False
 dead_players = {}
+last_access_time = time.time()
+
 
 def print_new_game():
     print("╔============================================╗")
     print("╠================= NEW GAME =================╣")
     print("╚============================================╝")
 
+
 def update_world(message):
-    global game_is_running, added_players
+    global game_is_running
     try:
         arr = pickle.loads(message)
 
@@ -147,7 +151,11 @@ class MainServer(asyncore.dispatcher):
     def __init__(self, port):
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bind(('', port))
+        try:
+            self.bind(('', port))
+        except Exception:
+            print("Port", port, "is busy")
+            exit(0)
         self.listen(10)
         print("╔==================")
         print("║ port:\t\t", port, )
@@ -163,12 +171,15 @@ class MainServer(asyncore.dispatcher):
         outgoing.append(conn)
         SecondaryServer(conn)
 
+    def handle_close(self):
+        self.close()
+
 
 class SecondaryServer(asyncore.dispatcher_with_send):
     def handle_read(self):
-        recieved_data = self.recv(BUFFERSIZE)
-        if recieved_data:
-            update_world(recieved_data)
+        received_data = self.recv(BUFFERSIZE)
+        if received_data:
+            update_world(received_data)
         else:
             self.close()
 
@@ -179,7 +190,7 @@ def print_stats():
     print("╠=== STATS ===╣")
     print("╚=============╝")
     winner_nick = ''
-    winner_score = 0
+    winner_score = -1
     for player in dead_players:
         print(player.nick, dead_players[player])
         if dead_players[player] > winner_score:
@@ -194,15 +205,19 @@ def print_stats():
     print("╚======================")
 
 
-def main():
+def main(argv):
     global amount_of_players
 
-    amount_of_players = 2  # int(options[0])
-    port = 4321  # int(options[1])
+    if len(argv) == 3:
+        amount_of_players = int(argv[1])
+        port = int(argv[2])
 
-    MainServer(port)
-    asyncore.loop()
+        MainServer(port)
+        asyncore.loop()
+    elif len(argv) != 3 or int(argv[1]) <= 0 or int(argv[2]) <= 0:
+        print("Usage:")
+        print(argv[0], "amount_of_players port")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
