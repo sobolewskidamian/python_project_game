@@ -22,25 +22,14 @@ BUFFERSIZE = 512
 outgoing = []
 clients = {}
 pipes = {}
-<<<<<<< HEAD
-port = 4321
-=======
 amount_of_players = 0
 game_is_running = False
 dead_players = {}
->>>>>>> damian1
 
 
 # port = 4321
 
 
-<<<<<<< HEAD
-    elif arr[0] == 'delete client':
-        playerid = arr[1]
-        if playerid in clients:
-            del clients[playerid]
-            print('Disconnect player: ', str(playerid))
-=======
 def update_world(message):
     global game_is_running, added_players
     try:
@@ -162,7 +151,6 @@ def update_world(message):
 
     except Exception:
         print(end='')
->>>>>>> damian1
 
 
 class MainServer(asyncore.dispatcher):
@@ -171,12 +159,9 @@ class MainServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bind(('', port))
         self.listen(10)
-<<<<<<< HEAD
-=======
         print("================")
         print(port, amount_of_players)
         print("================")
->>>>>>> damian1
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -186,8 +171,6 @@ class MainServer(asyncore.dispatcher):
         outgoing.append(conn)
         SecondaryServer(conn)
 
-<<<<<<< HEAD
-=======
 
 class SecondaryServer(asyncore.dispatcher_with_send):
     def handle_read(self):
@@ -218,16 +201,10 @@ def main():
     # options = set_options()
     amount_of_players = 2  # int(options[0])
     port = 4321  # int(options[1])
->>>>>>> damian1
 
     MainServer(port)
     asyncore.loop()
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-    MainServer(port)
-    asyncore.loop()
-=======
     main()
->>>>>>> damian1
