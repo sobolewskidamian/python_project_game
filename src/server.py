@@ -28,6 +28,7 @@ def update_world(message):
     global game_is_running
     try:
         arr = pickle.loads(message)
+        print(arr[0])
 
         if arr[0] == 'delete client':
             playerid = arr[1]
@@ -125,7 +126,7 @@ def update_world(message):
                 update = [arr[0]]
 
                 for key, value in clients.items():
-                    update.append([value.pid, value.x, value.total_y, value.y])
+                    update.append([value.pid, value.x, value.total_y, value.y, clients[playerid].nick])
 
                 try:
                     i.send(pickle.dumps(update))
