@@ -6,7 +6,6 @@ from pygame.locals import *
 import pickle
 import select
 import socket
-import random
 
 from pipe import Pipe
 from square import Square
@@ -53,7 +52,7 @@ class Game:
         self.restart_delay = 0
         self.pipes.clear()
         self.pipes_under_middle.clear()
-        self.client = Square(random.randint(1000, 1000000))
+        self.client = Square(self.client.pid)
         self.play()
 
     def play(self):
@@ -98,9 +97,7 @@ class Game:
                 self.check_collisions()
 
                 if multiplayer:
-                    self.s.send(pickle.dumps(
-                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
-                         self.client.score]))
+                    self.send_position_update()
 
                 self.clean_screen()
                 self.draw_square(self.client)
@@ -267,6 +264,11 @@ class Game:
                 self.s.connect((server_address, port))
             else:
                 break
+
+    def send_position_update(self):
+        self.s.send(pickle.dumps(
+                        ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
+                         self.client.score]))
 
     def get_pipe_size_from_server(self):
         self.s.send(pickle.dumps(['pipe location', self.client.pid, self.client.score + 1]))
