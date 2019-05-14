@@ -27,7 +27,7 @@ def main():
             game.game_ended = False
             mode = choose_mode()
             if mode:
-                game.server_address, game.port ='192.168.1.102', 4320  #get_multiplayer_data()  #
+                game.server_address, game.port = get_multiplayer_data()  # '192.168.1.102', 4320  #
                 game.multiplayer = True
             else:
                 game.multiplayer = False

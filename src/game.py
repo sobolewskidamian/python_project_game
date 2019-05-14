@@ -324,27 +324,34 @@ class Game:
     # else:
     # break
 
-    def send_position_update(self):
+    def send_data(self, data):
         if self.server_connected:
-            self.s.send(pickle.dumps(
-                ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y,
-                 self.client.score]))
+            try:
+                self.s.send(pickle.dumps(data))
+            except Exception:
+                self.game_ended = True
+                self.client.dead = True
+                self.started = True
+                self.s.close()
+                self.server_connected = False
+                self.draw_text_at_center("Server broke down")
+                time.sleep(1)
+
+    def send_position_update(self):
+        self.send_data(
+            ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y, self.client.score])
 
     def get_pipe_size_from_server(self):
-        if self.server_connected:
-            self.s.send(pickle.dumps(['pipe location', self.client.pid, self.client.score + 1]))
+        self.send_data(['pipe location', self.client.pid, self.client.score + 1])
 
     def delete_client(self):
-        if self.server_connected:
-            self.s.send(pickle.dumps(['delete client', self.client.pid]))
+        self.send_data(['delete client', self.client.pid])
 
     def add_client(self):
-        if self.server_connected:
-            self.s.send(pickle.dumps(['add client', self.client.pid, self.nick]))
+        self.send_data(['add client', self.client.pid, self.nick])
 
     def could_start_game(self):
-        if self.server_connected:
-            self.s.send(pickle.dumps(['could start game']))
+        self.send_data(['could start game'])
 
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
