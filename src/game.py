@@ -48,6 +48,7 @@ class Game:
         self.client_added = False
         if self.multiplayer:
             self.delete_client()
+        self.clients.clear()
         self.restart_delay = 0
         self.pipes.clear()
         self.pipes_under_middle.clear()
@@ -63,6 +64,7 @@ class Game:
                 try:
                     self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.s.connect((self.server_address, self.port))
+                    self.server_connected = True
                 except Exception:
                     self.game_ended = True
                     self.client.dead = True
@@ -82,19 +84,7 @@ class Game:
                         seconds = time.time()
                         seconds_bool = False
                     self.update_multiplayer()
-                    for event in pygame.event.get():
-                        if event.type == QUIT:
-                            self.delete_client()
-                            pygame.quit()
-                            sys.exit()
-                        if event.type == KEYDOWN and event.key == K_ESCAPE:
-                            self.game_ended = True
-                            self.client.dead = True
-                            self.started = True
-                            if self.multiplayer:
-                                self.delete_client()
-                                self.s.close()
-                                self.server_connected = False
+                    self.check_if_pressed_escape()
 
             seconds = time.time()
             seconds_bool = True
@@ -107,35 +97,25 @@ class Game:
                     seconds = time.time()
                     seconds_bool = False
                 self.update_multiplayer()
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        self.delete_client()
-                        pygame.quit()
-                        sys.exit()
-                    if event.type == KEYDOWN and event.key == K_ESCAPE:
-                        self.game_ended = True
-                        self.client.dead = True
-                        self.started = True
-                        if self.multiplayer:
-                            self.delete_client()
-                            self.s.close()
-                            self.server_connected = False
+                self.check_if_pressed_escape()
             self.ready_steady_go()
 
         self.show_screen_before_game()
         while not self.started:
-            self.watch_for_start()
+            self.watch_for_click()
             self.update_multiplayer()
 
+        seconds = time.time()
         while not self.client.dead:
             self.update_multiplayer()
-            self.watch_for_clickes()
+            self.watch_for_click()
             self.client.update()
             self.move_pipes()
             self.check_collisions()
 
-            if self.multiplayer:
+            if self.multiplayer and time.time() - seconds > 0.05:
                 self.send_position_update()
+                seconds = time.time()
 
             self.clean_screen()
             self.draw_square(self.client)
@@ -147,22 +127,28 @@ class Game:
 
         self.restart()
 
+    def action_when_quit_game(self):
+        self.game_ended = True
+        self.client.dead = True
+        self.started = True
+        if self.multiplayer:
+            self.delete_client()
+            self.s.close()
+            self.server_connected = False
+
+    def check_if_pressed_escape(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                self.delete_client()
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN and event.key == K_ESCAPE:
+                self.action_when_quit_game()
+
     def ready_steady_go_text(self, number):
         seconds = time.time()
         while time.time() - seconds < 1:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    self.delete_client()
-                    pygame.quit()
-                    sys.exit()
-                if event.type == KEYDOWN and event.key == K_ESCAPE:
-                    self.game_ended = True
-                    self.client.dead = True
-                    self.started = True
-                    if self.multiplayer:
-                        self.delete_client()
-                        self.s.close()
-                        self.server_connected = False
+            self.check_if_pressed_escape()
             if self.game_ended:
                 break
             self.clean_screen()
@@ -180,14 +166,13 @@ class Game:
         self.ready_steady_go_text(1)
 
     def update_multiplayer(self):
-        if self.multiplayer:
+        if self.multiplayer and self.server_connected:
             ins, outs, ex = select.select([self.s], [], [], 0)
             for inm in ins:
                 try:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
 
                     if game_event[0] == 'add client':
-                        self.server_connected = True
                         self.client.pid = game_event[1]
                         self.add_client()
                     if game_event[0] == 'client added' and game_event[1] == self.client.pid:
@@ -209,7 +194,6 @@ class Game:
                         game_event.pop(0)
                         if self.client.pid in game_event:
                             self.wait_for_multiplayer_game = False
-                            self.clients.clear()
                     if game_event[0] == 'start adding' and not self.client_added:
                         self.add_client()
                     if game_event[0] == 'client removed':
@@ -229,7 +213,7 @@ class Game:
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
 
-    def watch_for_clickes(self):
+    def watch_for_click(self):
         for event in pygame.event.get():
             if event.type == QUIT:
                 if self.multiplayer:
@@ -237,7 +221,7 @@ class Game:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == KEYDOWN:
+            if event.type == KEYDOWN and (event.key == K_LEFT or event.key == K_RIGHT or event.key == K_ESCAPE):
                 if event.key == K_LEFT:
                     self.client.left_pressed = True
                     for pipe in self.pipes:
@@ -248,25 +232,14 @@ class Game:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
                     # self.client.escape_pressed = True
-                    self.game_ended = True
-                    self.client.dead = True
-                    if self.multiplayer:
-                        self.delete_client()
-                        self.s.close()
-                        self.server_connected = False
-                self.started = True
+                    self.action_when_quit_game()
 
-    def watch_for_start(self):
-        # self.move_pipes()
-        self.watch_for_clickes()
+                self.started = True
 
     def clean_screen(self):
         self.SCREEN.fill((248, 248, 255))
 
     def draw_square(self, client):
-        pygame.draw.rect(self.SCREEN, (255, 0, 0),
-                         pygame.Rect(client.x, client.y, client.width, client.height))
-
         for pid in self.clients:
             actual_client = self.clients[pid]
             actual_client_x = actual_client[0]
@@ -286,6 +259,9 @@ class Game:
                 text = font.render(actual_client_nick, True, (0, 0, 0))
                 self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
                         actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
+
+        pygame.draw.rect(self.SCREEN, (255, 0, 0),
+                         pygame.Rect(client.x, client.y, client.width, client.height))
 
     def draw_pipes(self):
         for pipe in self.pipes:
@@ -330,6 +306,8 @@ class Game:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
             # len(self.pipes) - 1].right_pipe_width == 0:
             # self.wait_for_server()
+            if len(self.pipes) == 0:
+                y_value = -10
             self.add_pipe(y_value, delay)
 
         for pipe in self.pipes:

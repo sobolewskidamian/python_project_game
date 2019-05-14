@@ -27,10 +27,8 @@ def main():
             game.game_ended = False
             mode = choose_mode()
             if mode:
-                multiplayer = get_multiplayer_data()  #['127.0.0.1', 4320]  #
+                game.server_address, game.port ='192.168.1.102', 4320  #get_multiplayer_data()  #
                 game.multiplayer = True
-                game.server_address = multiplayer[0]
-                game.port = multiplayer[1]
             else:
                 game.multiplayer = False
         game.play()
@@ -87,7 +85,7 @@ def get_multiplayer_data():
 
         pygame.display.flip()
         FPSCLOCK.tick(FPS)
-    return [input_box.get_text(), int(input_box2.get_text())]
+    return input_box.get_text(), int(input_box2.get_text())
 
 
 def clean_screen():

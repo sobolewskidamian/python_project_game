@@ -134,7 +134,7 @@ def update_world(message):
                 update = [arr[0]]
 
                 for key, value in clients.items():
-                    update.append([value.pid, value.x, value.total_y, value.y, clients[playerid].nick])
+                    update.append([value.pid, value.x, value.total_y, value.y, value.nick])
 
                 try:
                     i.send(pickle.dumps(update))
@@ -255,8 +255,12 @@ def main(argv):
         amount_of_players = int(argv[1])
         port = int(argv[2])
 
-        MainServer(port)
-        asyncore.loop()
+        try:
+            MainServer(port)
+            asyncore.loop()
+        except Exception:
+            asyncore.close_all()
+            print("Server stopped")
     elif len(argv) != 3 or int(argv[1]) <= 0 or int(argv[2]) <= 0:
         print("Usage:")
         print(argv[0], "amount_of_players port")
