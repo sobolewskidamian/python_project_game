@@ -107,6 +107,8 @@ def update_world(message):
             if len(clients) == amount_of_players:
                 for i in outgoing:
                     start = ['start game']
+                    for id in clients:
+                        start.append(id)
                     try:
                         i.send(pickle.dumps(start))
                     except Exception:

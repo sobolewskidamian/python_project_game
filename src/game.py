@@ -60,8 +60,16 @@ class Game:
 
         if self.multiplayer:
             if not self.server_connected:
-                self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.s.connect((self.server_address, self.port))
+                try:
+                    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    self.s.connect((self.server_address, self.port))
+                except Exception:
+                    self.game_ended = True
+                    self.client.dead = True
+                    self.started = True
+                    self.wait_for_multiplayer_game = False
+                    self.draw_text_at_center("Cannot connect to server")
+                    time.sleep(1)
             else:
                 seconds = time.time()
                 seconds_bool = True
@@ -71,9 +79,9 @@ class Game:
                         break
                     if time.time() - seconds > 0.5 or seconds_bool:
                         self.add_client()
-                        self.update_multiplayer()
                         seconds = time.time()
                         seconds_bool = False
+                    self.update_multiplayer()
                     for event in pygame.event.get():
                         if event.type == QUIT:
                             self.delete_client()
@@ -96,9 +104,9 @@ class Game:
                     break
                 if time.time() - seconds > 0.5 or seconds_bool:
                     self.could_start_game()
-                    self.update_multiplayer()
                     seconds = time.time()
                     seconds_bool = False
+                self.update_multiplayer()
                 for event in pygame.event.get():
                     if event.type == QUIT:
                         self.delete_client()
@@ -177,7 +185,6 @@ class Game:
             for inm in ins:
                 try:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
-                    print(game_event[0])
 
                     if game_event[0] == 'add client':
                         self.server_connected = True
@@ -199,8 +206,10 @@ class Game:
                                 pipe.left_pipe_width = act_pipe[1]
                                 pipe.right_pipe_width = act_pipe[2]
                     if game_event[0] == 'start game':
-                        self.wait_for_multiplayer_game = False
-                        self.clients.clear()
+                        game_event.pop(0)
+                        if self.client.pid in game_event:
+                            self.wait_for_multiplayer_game = False
+                            self.clients.clear()
                     if game_event[0] == 'start adding' and not self.client_added:
                         self.add_client()
                     if game_event[0] == 'client removed':
