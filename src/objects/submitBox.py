@@ -29,3 +29,7 @@ class SubmitBox:
     def set_not_active(self):
         self.active = False
         self.color = COLOR_INACTIVE
+
+    def set_active(self):
+        self.active = True
+        self.color = COLOR_ACTIVE

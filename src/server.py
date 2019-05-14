@@ -14,16 +14,25 @@ outgoing = []
 clients = {}
 client_times = {}
 pipes = {}
-amount_of_players = 0
+amount_of_clients = 0
 game_is_running = False
-dead_players = {}
+dead_clients = {}
 last_access_time = time.time()
 
 
 def print_new_game():
     print("╔════════════════════════════════════════════╗")
     print("╠═════════════════ NEW GAME ═════════════════╣")
-    print("╚════════════════════════════════════════════╝")
+    print("╠════════════════════════════════════════════╝")
+
+
+def send_to_all(data):
+    for i in outgoing:
+        try:
+            i.send(pickle.dumps(data))
+        except Exception:
+            outgoing.remove(i)
+            continue
 
 
 def update_world(message):
@@ -32,68 +41,43 @@ def update_world(message):
         arr = pickle.loads(message)
 
         if arr[0] == 'delete client':
-            playerid = arr[1]
-            if playerid in clients:
-                dead_players[clients[playerid]] = clients[playerid].score
-                del clients[playerid]
-                if playerid in client_times: del client_times[playerid]
-                print('Disconnect player: ', str(playerid))
+            client_id = arr[1]
+            if client_id in clients:
+                dead_clients[clients[client_id]] = clients[client_id].score
+                del clients[client_id]
+                if client_id in client_times: del client_times[client_id]
+                print('║ Disconnect player: ', str(client_id))
 
             if len(clients) == 0:
                 time.sleep(0.1)
                 pipes.clear()
                 print_stats()
-                dead_players.clear()
+                dead_clients.clear()
                 print_new_game()
                 game_is_running = False
-
-                for i in outgoing:
-                    update = ['start adding']
-                    try:
-                        i.send(pickle.dumps(update))
-                    except Exception:
-                        outgoing.remove(i)
-                        continue
+                send_to_all(['start adding'])
 
         elif arr[0] == 'add client':
             id = arr[1]
             if id in clients:
-                for i in outgoing:
-                    update = ['client added', id]
-                    try:
-                        i.send(pickle.dumps(update))
-                    except Exception:
-                        outgoing.remove(i)
-                        continue
+                send_to_all(['client added', id])
                 return
-            if len(clients) < amount_of_players and not game_is_running:
+            if len(clients) < amount_of_clients and not game_is_running:
                 nick = arr[2]
                 if id not in clients:
                     client = Square(id)
                     client.nick = nick
                     clients[id] = client
-                    print("Client", id, "added")
-                    for i in outgoing:
-                        update = ['client added', id]
-                        try:
-                            i.send(pickle.dumps(update))
-                        except Exception:
-                            outgoing.remove(i)
-                            continue
+                    print("║ Client", id, "added")
+                    send_to_all(['client added', id])
 
-                    if len(clients) == amount_of_players:
+                    if len(clients) == amount_of_clients:
                         game_is_running = True
                         for id in clients:
                             client_times[id] = time.time()
-                        for i in outgoing:
-                            start = ['start game']
-                            try:
-                                i.send(pickle.dumps(start))
-                            except Exception:
-                                outgoing.remove(i)
-                                continue
+                        send_to_all(['start game'])
 
-            remove_offline_players()
+            remove_offline_clients()
             # else:
             # for i in outgoing:
             # update = ['game is running', id]
@@ -104,81 +88,56 @@ def update_world(message):
             # continue
 
         elif arr[0] == 'could start game':
-            if len(clients) == amount_of_players:
-                for i in outgoing:
-                    start = ['start game']
-                    for id in clients:
-                        start.append(id)
-                    try:
-                        i.send(pickle.dumps(start))
-                    except Exception:
-                        outgoing.remove(i)
-                        continue
+            if len(clients) == amount_of_clients:
+                start = ['start game']
+                for id in clients:
+                    start.append(id)
+                send_to_all(start)
 
         elif arr[0] == 'position update':
-            playerid = arr[1]
+            client_id = arr[1]
             x = arr[2]
             total_y = arr[3]
             y = arr[4]
             score = arr[5]
 
-            if playerid == -1 or playerid not in clients: return
+            if client_id == -1 or client_id not in clients: return
 
-            client_times[playerid] = time.time()
-            clients[playerid].x = x
-            clients[playerid].total_y = total_y
-            clients[playerid].y = y
-            clients[playerid].score = score
+            client_times[client_id] = time.time()
+            clients[client_id].x = x
+            clients[client_id].total_y = total_y
+            clients[client_id].y = y
+            clients[client_id].score = score
 
-            for i in outgoing:
-                update = [arr[0]]
-
-                for key, value in clients.items():
-                    update.append([value.pid, value.x, value.total_y, value.y, value.nick])
-
-                try:
-                    i.send(pickle.dumps(update))
-                except Exception:
-                    outgoing.remove(i)
-                    continue
+            to_send = ['position update']
+            for key, value in clients.items():
+                to_send.append([value.pid, value.x, value.total_y, value.y, value.nick])
+            send_to_all(to_send)
 
         elif arr[0] == 'pipe location':
-            playerid = arr[1]
+            client_id = arr[1]
             score = arr[2]
 
-            if playerid not in clients: return
+            if client_id not in clients: return
 
             if score not in pipes:
                 left, right = Generator().get_width_left_and_beetween(score)
                 pipes[score] = [left, right]
 
-            for i in outgoing:
-                update = [arr[0], [playerid, pipes[score][0], pipes[score][1]]]
-
-                try:
-                    i.send(pickle.dumps(update))
-                except Exception:
-                    outgoing.remove(i)
-                    continue
+            send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
 
     except Exception:
         print(end='')
 
 
-def remove_offline_players():
+def remove_offline_clients():
     global client_times
     for id in client_times:
         if time.time() - client_times[id] > offline_time:
             if id in clients:
                 del clients[id]
-            print('Disconnect player: ', str(id), "(offline)")
-            for i in outgoing:
-                update = ['client removed', id]
-                try:
-                    i.send(pickle.dumps(update))
-                except Exception:
-                    outgoing.remove(i)
-                    continue
+            print('║ Disconnect player: ', str(id), "(offline)")
+            send_to_all(['client removed', id])
 
     client_times = {key: val for key, val in client_times.items() if key in clients}
 
@@ -198,17 +157,18 @@ class MainServer(asyncore.dispatcher):
             exit(0)
         self.listen(10)
         print("╔══════════════════════")
+        print("║ ip:", socket.gethostbyname(socket.gethostname()))
         print("║ port:\t\t", port, )
-        print("║ players:\t", amount_of_players)
+        print("║ players:\t", amount_of_clients)
         print("╚══════════════════════")
         print_new_game()
 
     def handle_accept(self):
         if game_is_running:
-            remove_offline_players()
+            remove_offline_clients()
         else:
             conn, addr = self.accept()
-            print('Connection address:' + addr[0] + " " + str(addr[1]))
+            print('║ Connection address:' + addr[0] + " " + str(addr[1]))
             client_id = random.randint(1000, 1000000)
             conn.send(pickle.dumps(['add client', client_id]))
             outgoing.append(conn)
@@ -228,38 +188,34 @@ class SecondaryServer(asyncore.dispatcher_with_send):
 
 
 def print_stats():
-    print()
-    print("╔═════════════╗")
-    print("╠═══ STATS ═══╣")
-    print("╚═════════════╝")
+    print("╠══════════════════════╗")
+    print("╠═══════ STATS ════════╣")
+    print("╠══════════════════════╝")
     winner_nick = ''
     winner_score = -1
-    for player in dead_players:
-        print(player.nick, dead_players[player])
-        if dead_players[player] > winner_score:
-            winner_nick = player.nick
-            winner_score = dead_players[player]
+    for client in dead_clients:
+        print("║", client.nick, dead_clients[client])
+        if dead_clients[client] > winner_score:
+            winner_nick = client.nick
+            winner_score = dead_clients[client]
 
-    print()
-    print("╔══════════════════════")
-    print("║ Winner:", winner_nick)
     print("╠══════════════════════")
+    print("║ Winner:", winner_nick)
     print("║ Score:", winner_score)
-    print("╚══════════════════════")
+    print("╚═════════════════════════════════════════════")
 
 
 def main(argv):
-    global amount_of_players
+    global amount_of_clients
 
     if len(argv) == 3:
-        amount_of_players = int(argv[1])
+        amount_of_clients = int(argv[1])
         port = int(argv[2])
 
         try:
             MainServer(port)
             asyncore.loop()
         except Exception:
-            asyncore.close_all()
             print("Server stopped")
     elif len(argv) != 3 or int(argv[1]) <= 0 or int(argv[2]) <= 0:
         print("Usage:")

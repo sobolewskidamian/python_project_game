@@ -62,6 +62,7 @@ class Game:
         if self.multiplayer:
             if not self.server_connected:
                 try:
+                    self.draw_text_at_center("Trying connect to server...", False)
                     self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.s.connect((self.server_address, self.port))
                     self.server_connected = True
@@ -70,13 +71,15 @@ class Game:
                     self.client.dead = True
                     self.started = True
                     self.wait_for_multiplayer_game = False
-                    self.draw_text_at_center("Cannot connect to server")
-                    time.sleep(1)
+                    t = time.time()
+                    while time.time() - t < 3:
+                        self.draw_text_at_center("Cannot connect to server.", False)
+                        self.FPSCLOCK.tick(self.FPS)
             else:
-                seconds = time.time()
+                seconds = seconds_loop = time.time()
                 seconds_bool = True
                 while not self.client_added:
-                    self.draw_text_at_center("Waiting for joining the server...")
+                    self.draw_text_at_center("Waiting for joining the server.", True, seconds_loop)
                     if self.game_ended:
                         break
                     if time.time() - seconds > 0.5 or seconds_bool:
@@ -86,10 +89,10 @@ class Game:
                     self.update_multiplayer()
                     self.check_if_pressed_escape()
 
-            seconds = time.time()
+            seconds = seconds_loop = time.time()
             seconds_bool = True
             while self.wait_for_multiplayer_game:
-                self.draw_text_at_center("Waiting for players...")
+                self.draw_text_at_center("Waiting for players.", True, seconds_loop)
                 if self.game_ended:
                     break
                 if time.time() - seconds > 0.5 or seconds_bool:
@@ -203,7 +206,7 @@ class Game:
                             self.started = True
                             self.s.close()
                             self.server_connected = False
-                except Exception as e:
+                except Exception:
                     print(end='')
 
     def show_screen_before_game(self):
@@ -275,7 +278,14 @@ class Game:
         text = font.render(str(self.client.score), True, (0, 0, 0))
         self.SCREEN.blit(text, (0, 0))
 
-    def draw_text_at_center(self, text_to_draw):
+    def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
+        if dots:
+            if int(time.time() - t) % 4 == 1:
+                text_to_draw += '.'
+            elif int(time.time() - t) % 4 == 2:
+                text_to_draw += '..'
+            elif int(time.time() - t) % 4 == 3:
+                text_to_draw += '...'
         self.clean_screen()
         font = pygame.font.Font(None, 16)
         text = font.render(text_to_draw, True, (0, 0, 0))
@@ -334,8 +344,10 @@ class Game:
                 self.started = True
                 self.s.close()
                 self.server_connected = False
-                self.draw_text_at_center("Server broke down")
-                time.sleep(1)
+                t = time.time()
+                while time.time() - t < 3:
+                        self.draw_text_at_center("Server broke down.", False)
+                        self.FPSCLOCK.tick(self.FPS)
 
     def send_position_update(self):
         self.send_data(

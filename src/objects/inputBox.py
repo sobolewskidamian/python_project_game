@@ -24,12 +24,9 @@ class InputBox:
 
         if event.type == pg.KEYDOWN:
             if self.active:
-                if event.key == pg.K_RETURN:
-                    print(self.text)
-                    self.text = ''
-                elif event.key == pg.K_BACKSPACE:
+                if event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
-                else:
+                elif event.key != pg.K_TAB and event.key != pg.K_RETURN and event.key != pg.K_KP_ENTER:
                     self.text += event.unicode
                 self.txt_surface = FONT.render(self.text, True, self.color)
 
@@ -39,3 +36,14 @@ class InputBox:
 
     def get_text(self):
         return self.text
+
+    def get_active(self):
+        return self.active
+
+    def set_not_active(self):
+        self.active = False
+        self.color = COLOR_INACTIVE
+
+    def set_active(self):
+        self.active = True
+        self.color = COLOR_ACTIVE

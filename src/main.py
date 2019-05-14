@@ -27,7 +27,7 @@ def main():
             game.game_ended = False
             mode = choose_mode()
             if mode:
-                game.server_address, game.port = get_multiplayer_data()  # '192.168.1.102', 4320  #
+                game.server_address, game.port = get_multiplayer_data()  # '127.0.0.1', 4320  #
                 game.multiplayer = True
             else:
                 game.multiplayer = False
@@ -35,20 +35,21 @@ def main():
 
 
 def choose_mode():
-    clean_screen()
     submit_box = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 66, 150, 32, "Singleplayer")
     submit_box2 = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 6, 150, 32, "Multiplayer")
 
+    boxes = [submit_box, submit_box2]
     while not submit_box.get_active() and not submit_box2.get_active():
+        clean_screen()
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-            submit_box.handle_event(event)
-            submit_box2.handle_event(event)
+            for box in boxes:
+                box.handle_event(event)
 
-        submit_box.draw(SCREEN)
-        submit_box2.draw(SCREEN)
+        for box in boxes:
+            box.draw(SCREEN)
 
         pygame.display.flip()
         FPSCLOCK.tick(FPS)
@@ -59,59 +60,74 @@ def choose_mode():
 
 
 def get_multiplayer_data():
-    clean_screen()
-    SCREEN.blit(pygame.font.Font(None, 32).render('Server address:', True, pygame.Color('lightskyblue3')),
-                (10, SCREENHEIGHT / 2 - 120))
     input_box = InputBox(10, SCREENHEIGHT / 2 - 88, SCREENWIDTH - 20, 32)
-    SCREEN.blit(pygame.font.Font(None, 32).render('Server port:', True, pygame.Color('lightskyblue3')),
-                (10, SCREENHEIGHT / 2 - 40))
     input_box2 = InputBox(10, SCREENHEIGHT / 2 - 8, SCREENWIDTH - 20, 32)
     submit_box = SubmitBox(SCREENWIDTH / 2 - 28, SCREENHEIGHT / 2 + 50, 56, 32, "Play")
 
+    boxes = [input_box, input_box2, submit_box]
     while not submit_box.get_active() or input_box.get_text() == '' or input_box2.get_text() == '':
+        clean_screen()
+        SCREEN.blit(pygame.font.Font(None, 32).render('Server address:', True, pygame.Color('lightskyblue3')),
+                    (10, SCREENHEIGHT / 2 - 120))
+        SCREEN.blit(pygame.font.Font(None, 32).render('Server port:', True, pygame.Color('lightskyblue3')),
+                    (10, SCREENHEIGHT / 2 - 40))
+
         submit_box.set_not_active()
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-            input_box.handle_event(event)
-            input_box2.handle_event(event)
-            submit_box.handle_event(event)
+            if event.type == KEYDOWN:
+                if event.key == pygame.K_TAB and input_box.get_active():
+                    input_box.set_not_active()
+                    input_box2.set_active()
+                elif event.key == pygame.K_TAB and input_box2.get_active():
+                    input_box2.set_not_active()
+                    input_box.set_active()
+                if event.key == K_RETURN or event.key == K_KP_ENTER:
+                    submit_box.set_active()
+            for box in boxes:
+                box.handle_event(event)
 
-        input_box.draw(SCREEN)
-        input_box2.draw(SCREEN)
-        submit_box.draw(SCREEN)
+        for box in boxes:
+            box.draw(SCREEN)
 
         pygame.display.flip()
         FPSCLOCK.tick(FPS)
-    return input_box.get_text(), int(input_box2.get_text())
+    try:
+        port = int(input_box2.get_text())
+    except Exception:
+        port = 0
+    return input_box.get_text(), port
 
 
 def clean_screen():
     SCREEN.fill((248, 248, 255))
-    pygame.display.update()
 
 
 def get_nick():
-    clean_screen()
-    SCREEN.blit(pygame.font.Font(None, 32).render('Your nick:', True, pygame.Color('lightskyblue3')),
-                (SCREENWIDTH / 2 - 54, SCREENHEIGHT / 2 - 32 - 20))
     input_box = InputBox(10, SCREENHEIGHT / 2 - 16, SCREENWIDTH - 20, 32)
     submit_box = SubmitBox(SCREENWIDTH / 2 - 28, SCREENHEIGHT / 2 + 16 + 20, 56, 32, "Play")
 
+    boxes = [input_box, submit_box]
     while not submit_box.get_active() or input_box.get_text() == '':
+        SCREEN.fill((248, 248, 255))
+        SCREEN.blit(pygame.font.Font(None, 32).render('Your nick:', True, pygame.Color('lightskyblue3')),
+                    (SCREENWIDTH / 2 - 54, SCREENHEIGHT / 2 - 32 - 20))
         submit_box.set_not_active()
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-            input_box.handle_event(event)
-            submit_box.handle_event(event)
+            if event.type == KEYDOWN and (event.key == K_RETURN or event.key == K_KP_ENTER):
+                submit_box.set_active()
+            for box in boxes:
+                box.handle_event(event)
 
-        input_box.draw(SCREEN)
-        submit_box.draw(SCREEN)
+        for box in boxes:
+            box.draw(SCREEN)
 
         pygame.display.flip()
         FPSCLOCK.tick(FPS)
