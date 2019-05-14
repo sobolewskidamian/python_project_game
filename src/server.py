@@ -9,8 +9,10 @@ from square import Square
 from generator import Generator
 
 BUFFERSIZE = 512
+offline_time = 30
 outgoing = []
 clients = {}
+client_times = {}
 pipes = {}
 amount_of_players = 0
 game_is_running = False
@@ -28,13 +30,13 @@ def update_world(message):
     global game_is_running
     try:
         arr = pickle.loads(message)
-        print(arr[0])
 
         if arr[0] == 'delete client':
             playerid = arr[1]
             if playerid in clients:
                 dead_players[clients[playerid]] = clients[playerid].score
                 del clients[playerid]
+                if playerid in client_times: del client_times[playerid]
                 print('Disconnect player: ', str(playerid))
 
             if len(clients) == 0:
@@ -81,6 +83,8 @@ def update_world(message):
 
                     if len(clients) == amount_of_players:
                         game_is_running = True
+                        for id in clients:
+                            client_times[id] = time.time()
                         for i in outgoing:
                             start = ['start game']
                             try:
@@ -88,20 +92,23 @@ def update_world(message):
                             except Exception:
                                 outgoing.remove(i)
                                 continue
-            else:
-                for i in outgoing:
-                    update = ['game is running', id]
 
-                    try:
-                        i.send(pickle.dumps(update))
-                    except Exception:
-                        outgoing.remove(i)
-                        continue
+            remove_offline_players()
+            # else:
+            # for i in outgoing:
+            # update = ['game is running', id]
+            # try:
+            # i.send(pickle.dumps(update))
+            # except Exception:
+            # outgoing.remove(i)
+            # continue
 
         elif arr[0] == 'could start game':
             if len(clients) == amount_of_players:
                 for i in outgoing:
                     start = ['start game']
+                    for id in clients:
+                        start.append(id)
                     try:
                         i.send(pickle.dumps(start))
                     except Exception:
@@ -117,6 +124,7 @@ def update_world(message):
 
             if playerid == -1 or playerid not in clients: return
 
+            client_times[playerid] = time.time()
             clients[playerid].x = x
             clients[playerid].total_y = total_y
             clients[playerid].y = y
@@ -157,6 +165,28 @@ def update_world(message):
         print(end='')
 
 
+def remove_offline_players():
+    global client_times
+    for id in client_times:
+        if time.time() - client_times[id] > offline_time:
+            if id in clients:
+                del clients[id]
+            print('Disconnect player: ', str(id), "(offline)")
+            for i in outgoing:
+                update = ['client removed', id]
+                try:
+                    i.send(pickle.dumps(update))
+                except Exception:
+                    outgoing.remove(i)
+                    continue
+
+    client_times = {key: val for key, val in client_times.items() if key in clients}
+
+    if len(clients) == 0:
+        global game_is_running
+        game_is_running = False
+
+
 class MainServer(asyncore.dispatcher):
     def __init__(self, port):
         asyncore.dispatcher.__init__(self)
@@ -174,12 +204,15 @@ class MainServer(asyncore.dispatcher):
         print_new_game()
 
     def handle_accept(self):
-        conn, addr = self.accept()
-        print('Connection address:' + addr[0] + " " + str(addr[1]))
-        client_id = random.randint(1000, 1000000)
-        conn.send(pickle.dumps(['add client', client_id]))
-        outgoing.append(conn)
-        SecondaryServer(conn)
+        if game_is_running:
+            remove_offline_players()
+        else:
+            conn, addr = self.accept()
+            print('Connection address:' + addr[0] + " " + str(addr[1]))
+            client_id = random.randint(1000, 1000000)
+            conn.send(pickle.dumps(['add client', client_id]))
+            outgoing.append(conn)
+            SecondaryServer(conn)
 
     def handle_close(self):
         self.close()
