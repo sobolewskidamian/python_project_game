@@ -34,6 +34,7 @@ class Game:
         self.restart_delay = 0
         self.pipes = []
         self.pipes_under_middle = []
+        self.boss_mode = False
 
         self.s = None
         self.server_connected = False
@@ -263,8 +264,8 @@ class Game:
                 self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
                         actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
 
-        pygame.draw.rect(self.SCREEN, (255, 0, 0),
-                         pygame.Rect(client.x, client.y, client.width, client.height))
+        img = pygame.image.load('pixil-frame-0.png')
+        self.SCREEN.blit(img, (client.x, client.y))
 
     def draw_pipes(self):
         for pipe in self.pipes:
@@ -311,6 +312,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
+                if self.client.score % 5 == 0:
+                    self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
@@ -318,7 +321,8 @@ class Game:
             # self.wait_for_server()
             if len(self.pipes) == 0:
                 y_value = -10
-            self.add_pipe(y_value, delay)
+            if not self.boss_mode:
+                self.add_pipe(y_value, delay)
 
         for pipe in self.pipes:
             pipe.update()
