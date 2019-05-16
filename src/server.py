@@ -9,7 +9,7 @@ from square import Square
 from generator import Generator
 
 BUFFERSIZE = 512
-offline_time = 30
+offline_time = 10
 outgoing = []
 clients = {}
 client_times = {}
@@ -35,6 +35,17 @@ def send_to_all(data):
             continue
 
 
+def action_when_no_players():
+    global game_is_running
+    time.sleep(0.1)
+    pipes.clear()
+    print_stats()
+    dead_clients.clear()
+    print_new_game()
+    game_is_running = False
+    send_to_all(['start adding'])
+
+
 def update_world(message):
     global game_is_running
     try:
@@ -49,16 +60,11 @@ def update_world(message):
                 print('║ Disconnect player: ', str(client_id))
 
             if len(clients) == 0:
-                time.sleep(0.1)
-                pipes.clear()
-                print_stats()
-                dead_clients.clear()
-                print_new_game()
-                game_is_running = False
-                send_to_all(['start adding'])
+                action_when_no_players()
 
         elif arr[0] == 'add client':
             id = arr[1]
+            if id == -1: return
             if id in clients:
                 send_to_all(['client added', id])
                 return
@@ -142,9 +148,7 @@ def remove_offline_clients():
     client_times = {key: val for key, val in client_times.items() if key in clients}
 
     if len(clients) == 0:
-        global game_is_running
-        game_is_running = False
-
+        action_when_no_players()
 
 class MainServer(asyncore.dispatcher):
     def __init__(self, port):
