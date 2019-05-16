@@ -134,7 +134,10 @@ class Game:
             self.draw_square(self.client)
             self.draw_pipes()
             self.draw_score()
+            self.draw_hp_bar()
             self.draw_bullets()
+            if self.boss_mode:
+                self.draw_boss()
 
             pygame.display.update()
             self.FPSCLOCK.tick(self.FPS)
@@ -297,6 +300,13 @@ class Game:
             img = pygame.image.load('bullet.png')
             self.SCREEN.blit(img, (bullet.x, bullet.y))
 
+    def draw_boss(self):
+        img = pygame.image.load('boss.png')
+        self.SCREEN.blit(img, (100, 20))
+
+    def draw_hp_bar(self):
+        pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 480, 2 * self.client.hp, 20))
+
     def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
         if dots:
             if int(time.time() - t) % 4 == 1:
@@ -311,12 +321,6 @@ class Game:
         self.SCREEN.blit(text, (10, SCREENHEIGHT / 2 - 8))
         pygame.display.update()
 
-    def move_bullets(self):
-        for bullet in self.bullets:
-            if bullet.y < 0:
-                self.bullets.remove(bullet)
-            else:
-                bullet.y -= SPEED*10
     # def wait_for_server(self):
     # while True:
     # data = self.s.recv(4096)
@@ -324,6 +328,13 @@ class Game:
     # self.s.connect((self.server_address, self.port))
     # else:
     # break
+
+    def move_bullets(self):
+        for bullet in self.bullets:
+            if bullet.y < 0:
+                self.bullets.remove(bullet)
+            else:
+                bullet.y -= SPEED * 10
 
     def move_pipes(self):
         in_middle = False
@@ -345,8 +356,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                # if self.client.score % 5 == 0:
-                # self.boss_mode = True
+                if self.client.score % 5 == 0:
+                    self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
@@ -406,8 +417,8 @@ class Game:
             pipe.right_pipe_width = right
 
     def add_bullet(self):
-        bullet1 = Bullet(self.client.x + 1, self.client.y-1)
-        bullet2 = Bullet(self.client.x + 17, self.client.y-1)
+        bullet1 = Bullet(self.client.x + 1, self.client.y - 1)
+        bullet2 = Bullet(self.client.x + 17, self.client.y - 1)
         self.bullets.append(bullet1)
         self.bullets.append(bullet2)
 
