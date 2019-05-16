@@ -28,6 +28,7 @@ class Game:
         self.multiplayer = False
         self.port = 0
         self.server_address = ''
+        self.game_id = 0
 
         self.nick = nick
         self.game_ended = True
@@ -46,6 +47,7 @@ class Game:
         self.clients = {}
 
     def restart(self):
+        self.game_id = 0
         self.started = False
         self.client.dead = True
         self.wait_for_multiplayer_game = True
@@ -85,26 +87,24 @@ class Game:
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while not self.client_added:
-                self.draw_text_at_center("Waiting for joining the server.", True, seconds_loop)
+                self.draw_text_at_center("Waiting for joining the server", True, seconds_loop)
                 if self.game_ended:
                     break
-                if time.time() - seconds > 0.5 or seconds_bool:
+                if time.time() - seconds > 0.2 or seconds_bool:
                     self.update_multiplayer()
-                    # if not self.client_added and self.first_client_in_session_added:
                     self.add_client()
                     seconds = time.time()
                     seconds_bool = False
-                # self.update_multiplayer()
 
                 self.check_if_pressed_escape()
 
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while self.wait_for_multiplayer_game:
-                self.draw_text_at_center("Waiting for players.", True, seconds_loop)
+                self.draw_text_at_center("Waiting for players", True, seconds_loop)
                 if self.game_ended:
                     break
-                if time.time() - seconds > 0.5 or seconds_bool:
+                if time.time() - seconds > 0.2 or seconds_bool:
                     self.update_multiplayer()
                     self.could_start_game()
                     seconds = time.time()
@@ -192,8 +192,9 @@ class Game:
                         self.client_added = True
                     if game_event[0] == 'position update':
                         game_event.pop(0)
+                        game_id = game_event.pop(0)
                         for act_client in game_event:
-                            if act_client[0] != self.client.pid:
+                            if act_client[0] != self.client.pid and self.game_id == game_id:
                                 self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3],
                                                                act_client[4]]
                     if game_event[0] == 'pipe location':
@@ -205,8 +206,10 @@ class Game:
                                 pipe.right_pipe_width = act_pipe[2]
                     if game_event[0] == 'start game':
                         game_event.pop(0)
+                        game_id = game_event.pop(0)
                         if self.client.pid in game_event:
                             self.wait_for_multiplayer_game = False
+                            self.game_id = game_id
                     if game_event[0] == 'start adding' and not self.client_added:
                         self.add_client()
                     if game_event[0] == 'client removed':
@@ -248,8 +251,8 @@ class Game:
                     # self.client.escape_pressed = True
                     self.action_when_quit_game()
                 elif event.key == K_SPACE:
-                    if self.boss_mode:
-                        self.add_bullet()
+                    # if self.boss_mode:
+                    self.add_bullet()
 
                 self.started = True
 
@@ -316,7 +319,8 @@ class Game:
             if bullet.y < 0:
                 self.bullets.remove(bullet)
             else:
-                bullet.y -= SPEED*10
+                bullet.y -= SPEED * 10
+
     # def wait_for_server(self):
     # while True:
     # data = self.s.recv(4096)
@@ -406,8 +410,8 @@ class Game:
             pipe.right_pipe_width = right
 
     def add_bullet(self):
-        bullet1 = Bullet(self.client.x + 1, self.client.y-1)
-        bullet2 = Bullet(self.client.x + 17, self.client.y-1)
+        bullet1 = Bullet(self.client.x + 1, self.client.y - 1)
+        bullet2 = Bullet(self.client.x + 17, self.client.y - 1)
         self.bullets.append(bullet1)
         self.bullets.append(bullet2)
 
