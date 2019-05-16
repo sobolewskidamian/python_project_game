@@ -124,7 +124,7 @@ class Game:
             self.client.update()
             self.move_pipes()
             self.move_bullets()
-            #self.check_collisions()
+            # self.check_collisions()
 
             if self.multiplayer and time.time() - seconds > 0.05:
                 self.send_position_update()
@@ -260,6 +260,7 @@ class Game:
         self.SCREEN.fill((248, 248, 255))
 
     def draw_square(self, client):
+        img = pygame.image.load('pixil-frame-0.png')
         for pid in self.clients:
             actual_client = self.clients[pid]
             actual_client_x = actual_client[0]
@@ -268,19 +269,16 @@ class Game:
             actual_client_nick = actual_client[3]
 
             if abs(actual_client_total_y - self.client.total_y) < SCREENHEIGHT / 2 + self.client.height:
-                pygame.draw.rect(self.SCREEN,
-                                 (0, 0, 0),
-                                 pygame.Rect(actual_client_x,
-                                             SCREENHEIGHT / 2 - (
-                                                     actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y,
-                                             self.client.width,
-                                             self.client.height))
+                self.SCREEN.blit(img, (
+                    actual_client_x,
+                    self.client.total_y - actual_client_total_y - self.client.height / 2 + actual_client_y,
+                    self.client.width,
+                    self.client.height))
                 font = pygame.font.Font(None, 15)
                 text = font.render(actual_client_nick, True, (0, 0, 0))
-                self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
-                        actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
+                self.SCREEN.blit(text, (actual_client_x,
+                                        self.client.total_y - actual_client_total_y + actual_client_y + self.client.height/2))
 
-        img = pygame.image.load('pixil-frame-0.png')
         self.SCREEN.blit(img, (client.x, client.y))
 
     def draw_pipes(self):

@@ -2,21 +2,20 @@ import sys
 import time
 import socket
 import asyncore
-import random
 import pickle
 
 from generator import Generator
+from square import Square
 
-
-class Square:
-    def __init__(self, pid):
-        self.pid = pid
-        self.nick = ''
-        self.score = 0
-        self.x = 0
-        self.y = 0
-        self.total_y = 0
-        self.dead = False
+#class Square:
+    #def __init__(self, pid):
+        #self.pid = pid
+        #self.nick = ''
+        #self.score = 0
+        #self.x = 0
+        #self.y = 0
+        #self.total_y = 0
+        #self.dead = False
 
 
 BUFFERSIZE = 512
