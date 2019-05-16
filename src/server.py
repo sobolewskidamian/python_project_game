@@ -216,6 +216,7 @@ def main(argv):
             MainServer(port)
             asyncore.loop()
         except Exception:
+            #MainServer.close()
             print("Server stopped")
     elif len(argv) != 3 or int(argv[1]) <= 0 or int(argv[2]) <= 0:
         print("Usage:")

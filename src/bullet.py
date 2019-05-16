@@ -17,3 +17,8 @@ class Bullet:
 
     def update(self):
         self.y_change -= SPEED
+
+    def collides(self, x, y, width, height):
+        if y + height >= self.y and y <= self.y + self.height:
+            return True
+        return False

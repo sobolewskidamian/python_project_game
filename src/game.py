@@ -47,6 +47,7 @@ class Game:
         self.client.dead = True
         self.wait_for_multiplayer_game = True
         self.client_added = False
+        self.boss_mode = False
         if self.multiplayer:
             self.delete_client()
         self.clients.clear()
@@ -312,7 +313,7 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if self.client.score % 5 == 0:
+                if self.client.score % 25 == 0:
                     self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
