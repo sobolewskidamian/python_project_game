@@ -7,6 +7,7 @@ import pickle
 import select
 import socket
 
+from bullet import Bullet, SPEED
 from pipe import Pipe
 from square import Square
 from generator import Generator
@@ -34,6 +35,7 @@ class Game:
         self.restart_delay = 0
         self.pipes = []
         self.pipes_under_middle = []
+        self.bullets = []
         self.boss_mode = False
 
         self.s = None
@@ -54,6 +56,7 @@ class Game:
         self.clients.clear()
         self.restart_delay = 0
         self.pipes.clear()
+        self.bullets.clear()
         self.pipes_under_middle.clear()
         self.client = Square(self.client.pid)
 
@@ -78,7 +81,7 @@ class Game:
                     while time.time() - t < 3:
                         self.draw_text_at_center("Cannot connect to server.", False)
                         self.FPSCLOCK.tick(self.FPS)
-            #else:
+            # else:
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while not self.client_added:
@@ -87,11 +90,11 @@ class Game:
                     break
                 if time.time() - seconds > 0.2 or seconds_bool:
                     self.update_multiplayer()
-                    #if not self.client_added and self.first_client_in_session_added:
+                    # if not self.client_added and self.first_client_in_session_added:
                     self.add_client()
                     seconds = time.time()
                     seconds_bool = False
-                #self.update_multiplayer()
+                # self.update_multiplayer()
                 self.check_if_pressed_escape()
 
             seconds = seconds_loop = time.time()
@@ -119,6 +122,7 @@ class Game:
             self.watch_for_click()
             self.client.update()
             self.move_pipes()
+            self.move_bullets()
             self.check_collisions()
 
             if self.multiplayer and time.time() - seconds > 0.05:
@@ -129,6 +133,7 @@ class Game:
             self.draw_square(self.client)
             self.draw_pipes()
             self.draw_score()
+            self.draw_bullets()
 
             pygame.display.update()
             self.FPSCLOCK.tick(self.FPS)
@@ -230,7 +235,8 @@ class Game:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == KEYDOWN and (event.key == K_LEFT or event.key == K_RIGHT or event.key == K_ESCAPE):
+            if event.type == KEYDOWN and (event.key == K_LEFT or event.key == K_RIGHT or event.key == K_ESCAPE
+                                          or event.key == K_SPACE):
                 if event.key == K_LEFT:
                     self.client.left_pressed = True
                     for pipe in self.pipes:
@@ -242,6 +248,9 @@ class Game:
                 elif event.key == K_ESCAPE:
                     # self.client.escape_pressed = True
                     self.action_when_quit_game()
+                elif event.key == K_SPACE:
+                    if self.boss_mode:
+                        self.add_bullet()
 
                 self.started = True
 
@@ -284,6 +293,11 @@ class Game:
         text = font.render(str(self.client.score), True, (0, 0, 0))
         self.SCREEN.blit(text, (0, 0))
 
+    def draw_bullets(self):
+        for bullet in self.bullets:
+            img = pygame.image.load('bullet.png')
+            self.SCREEN.blit(img, (bullet.x, bullet.y))
+
     def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
         if dots:
             if int(time.time() - t) % 4 == 1:
@@ -297,6 +311,20 @@ class Game:
         text = font.render(text_to_draw, True, (0, 0, 0))
         self.SCREEN.blit(text, (10, SCREENHEIGHT / 2 - 8))
         pygame.display.update()
+
+    def move_bullets(self):
+        for bullet in self.bullets:
+            if bullet.y < 0:
+                self.bullets.remove(bullet)
+            else:
+                bullet.y -= SPEED*10
+    # def wait_for_server(self):
+    # while True:
+    # data = self.s.recv(4096)
+    # if len(data) == 0:
+    # self.s.connect((self.server_address, self.port))
+    # else:
+    # break
 
     def move_pipes(self):
         in_middle = False
@@ -317,7 +345,7 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if self.client.score % 25 == 0:
+                if self.client.score % 5 == 0:
                     self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
@@ -335,14 +363,6 @@ class Game:
         if len(self.pipes) > 0:
             self.pipes[0].update_square()
 
-    # def wait_for_server(self):
-    # while True:
-    # data = self.s.recv(4096)
-    # if len(data) == 0:
-    # self.s.connect((self.server_address, self.port))
-    # else:
-    # break
-
     def send_data(self, data):
         if self.server_connected:
             try:
@@ -355,8 +375,8 @@ class Game:
                 self.server_connected = False
                 t = time.time()
                 while time.time() - t < 3:
-                        self.draw_text_at_center("Server broke down.", False)
-                        self.FPSCLOCK.tick(self.FPS)
+                    self.draw_text_at_center("Server broke down.", False)
+                    self.FPSCLOCK.tick(self.FPS)
 
     def send_position_update(self):
         self.send_data(
@@ -384,6 +404,12 @@ class Game:
             left, right = Generator().get_width_left_and_beetween(self.client.score)
             pipe.left_pipe_width = left
             pipe.right_pipe_width = right
+
+    def add_bullet(self):
+        bullet1 = Bullet(self.client.x + 1, self.client.y-1)
+        bullet2 = Bullet(self.client.x + 17, self.client.y-1)
+        self.bullets.append(bullet1)
+        self.bullets.append(bullet2)
 
     def check_collisions(self):
         for pipe in self.pipes:
