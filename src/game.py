@@ -1,3 +1,4 @@
+import random
 import sys
 import time
 
@@ -38,9 +39,8 @@ class Game:
 
         self.s = None
         self.server_connected = False
-        self.first_client_in_session_added = False
         self.client_added = False
-        self.client = Square(-1)
+        self.client = Square(random.randint(1000, 1000000))
         self.clients = {}
 
     def restart(self):
@@ -77,20 +77,18 @@ class Game:
                     while time.time() - t < 3:
                         self.draw_text_at_center("Cannot connect to server.", False)
                         self.FPSCLOCK.tick(self.FPS)
-            #else:
+
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while not self.client_added:
                 self.draw_text_at_center("Waiting for joining the server.", True, seconds_loop)
                 if self.game_ended:
                     break
-                if time.time() - seconds > 0.2 or seconds_bool:
+                if time.time() - seconds > 0.5 or seconds_bool:
                     self.update_multiplayer()
-                    #if not self.client_added and self.first_client_in_session_added:
                     self.add_client()
                     seconds = time.time()
                     seconds_bool = False
-                #self.update_multiplayer()
                 self.check_if_pressed_escape()
 
             seconds = seconds_loop = time.time()
@@ -99,7 +97,7 @@ class Game:
                 self.draw_text_at_center("Waiting for players.", True, seconds_loop)
                 if self.game_ended:
                     break
-                if time.time() - seconds > 0.2 or seconds_bool:
+                if time.time() - seconds > 0.5 or seconds_bool:
                     self.update_multiplayer()
                     self.could_start_game()
                     seconds = time.time()
@@ -118,9 +116,9 @@ class Game:
             self.watch_for_click()
             self.client.update()
             self.move_pipes()
-            self.check_collisions()
+            # self.check_collisions()
 
-            if self.multiplayer and time.time() - seconds > 0.05:
+            if self.multiplayer and time.time() - seconds > 0.5:
                 self.send_position_update()
                 seconds = time.time()
 
@@ -178,13 +176,12 @@ class Game:
             for inm in ins:
                 try:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
+                    print(game_event)
 
-                    if game_event[0] == 'add client':
-                        self.client.pid = game_event[1]
+                    if game_event[0] == 'add client' and not self.client_added:
                         self.add_client()
                     if game_event[0] == 'client added' and game_event[1] == self.client.pid:
                         self.client_added = True
-                        self.first_client_in_session_added = True
                     if game_event[0] == 'position update':
                         game_event.pop(0)
                         for act_client in game_event:

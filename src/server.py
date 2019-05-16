@@ -50,6 +50,7 @@ def update_world(message):
     global game_is_running
     try:
         arr = pickle.loads(message)
+        print(arr)
 
         if arr[0] == 'delete client':
             client_id = arr[1]
@@ -173,8 +174,7 @@ class MainServer(asyncore.dispatcher):
         else:
             conn, addr = self.accept()
             print('║ Connection address:' + addr[0] + " " + str(addr[1]))
-            client_id = random.randint(1000, 1000000)
-            conn.send(pickle.dumps(['add client', client_id]))
+            conn.send(pickle.dumps(['add client']))
             outgoing.append(conn)
             SecondaryServer(conn)
 
