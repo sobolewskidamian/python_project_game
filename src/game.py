@@ -124,7 +124,7 @@ class Game:
             self.client.update()
             self.move_pipes()
             self.move_bullets()
-            self.check_collisions()
+            #self.check_collisions()
 
             if self.multiplayer and time.time() - seconds > 0.05:
                 self.send_position_update()
