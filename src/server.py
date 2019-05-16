@@ -50,7 +50,6 @@ def update_world(message):
     global game_is_running
     try:
         arr = pickle.loads(message)
-        print(arr)
 
         if arr[0] == 'delete client':
             client_id = arr[1]

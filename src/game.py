@@ -116,9 +116,9 @@ class Game:
             self.watch_for_click()
             self.client.update()
             self.move_pipes()
-            # self.check_collisions()
+            self.check_collisions()
 
-            if self.multiplayer and time.time() - seconds > 0.5:
+            if self.multiplayer and time.time() - seconds > 0.05:
                 self.send_position_update()
                 seconds = time.time()
 
@@ -176,7 +176,6 @@ class Game:
             for inm in ins:
                 try:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
-                    print(game_event)
 
                     if game_event[0] == 'add client' and not self.client_added:
                         self.add_client()
@@ -299,10 +298,11 @@ class Game:
         y_value = 0
         delay = 0
 
-        for pipe in self.pipes:
-            if pipe.left_pipe_width == 0 and pipe.right_pipe_width == 0:
-                self.get_pipe_size_from_server()
+        if len(self.pipes) != 0 and (self.pipes[len(self.pipes) - 1].left_pipe_width == 0 or self.pipes[
+            len(self.pipes) - 1].right_pipe_width == 0):
+            self.get_pipe_size_from_server()
 
+        for pipe in self.pipes:
             if pipe.y > SCREENHEIGHT:
                 self.pipes.remove(pipe)
                 self.pipes_under_middle.remove(pipe)
@@ -313,8 +313,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if self.client.score % 5 == 0:
-                    self.boss_mode = True
+                # if self.client.score % 5 == 0:
+                # self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
@@ -351,8 +351,8 @@ class Game:
                 self.server_connected = False
                 t = time.time()
                 while time.time() - t < 3:
-                        self.draw_text_at_center("Server broke down.", False)
-                        self.FPSCLOCK.tick(self.FPS)
+                    self.draw_text_at_center("Server broke down.", False)
+                    self.FPSCLOCK.tick(self.FPS)
 
     def send_position_update(self):
         self.send_data(
