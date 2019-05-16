@@ -8,6 +8,7 @@ class Square:
     def __init__(self, pid):
         self.pid = pid
         self.nick = ''
+        self.hp = 100
         self.score = 0
         self.width = 20
         self.height = self.width

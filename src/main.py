@@ -4,7 +4,6 @@ from pygame.locals import *
 
 from objects.inputBox import InputBox
 from objects.submitBox import SubmitBox
-
 from game import Game
 
 FPS = 70

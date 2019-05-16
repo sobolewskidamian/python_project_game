@@ -2,11 +2,8 @@ import pygame
 
 pygame.init()
 
-SCREENWIDTH = 288
-SCREENHEIGHT = 512
-
 SPEED = 0.7
-DAMAGE = 1
+DAMAGE = 50
 
 
 class Bullet:

@@ -13,6 +13,7 @@ from pipe import Pipe
 from square import Square
 from generator import Generator
 
+
 pygame.init()
 
 SCREENWIDTH = 288
@@ -282,8 +283,8 @@ class Game:
 
     def draw_pipes(self):
         for pipe in self.pipes:
-            pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(0, pipe.y, pipe.left_pipe_width, pipe.height))
-            pygame.draw.rect(self.SCREEN, (255, 0, 0),
+            pygame.draw.rect(self.SCREEN, (0, 0, 0), pygame.Rect(0, pipe.y, pipe.left_pipe_width, pipe.height))
+            pygame.draw.rect(self.SCREEN, (0, 0, 0),
                              pygame.Rect(SCREENWIDTH - pipe.right_pipe_width, pipe.y, pipe.right_pipe_width,
                                          pipe.height))
 
@@ -345,8 +346,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                # if self.client.score % 5 == 0:
-                # self.boss_mode = True
+                if self.client.score % 5 == 0:
+                    self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
