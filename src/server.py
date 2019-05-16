@@ -7,17 +7,6 @@ import pickle
 from generator import Generator
 from square import Square
 
-#class Square:
-    #def __init__(self, pid):
-        #self.pid = pid
-        #self.nick = ''
-        #self.score = 0
-        #self.x = 0
-        #self.y = 0
-        #self.total_y = 0
-        #self.dead = False
-
-
 BUFFERSIZE = 512
 offline_time = 10
 outgoing = []
@@ -54,7 +43,7 @@ def action_when_no_players():
     dead_clients.clear()
     print_new_game()
     game_is_running = False
-    game_id+=1
+    game_id += 1
     send_to_all(['start adding'])
 
 
@@ -135,6 +124,13 @@ def update_world(message):
                 pipes[score] = [left, right]
 
             send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
+
+        elif arr[0] == 'get nicks':
+            data = [arr[0]]
+            for id in clients:
+                data.append(clients[id].nick)
+
+            send_to_all(data)
 
     except Exception:
         print(end='')

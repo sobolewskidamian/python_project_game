@@ -45,6 +45,8 @@ class Game:
         self.client_added = False
         self.client = Square(random.randint(1000, 1000000))
         self.clients = {}
+        self.nicks_before_game = []
+        self.last_update_nicks = time.time()
 
     def restart(self):
         self.game_id = 0
@@ -56,6 +58,7 @@ class Game:
         if self.multiplayer:
             self.delete_client()
         self.clients.clear()
+        self.nicks_before_game.clear()
         self.restart_delay = 0
         self.pipes.clear()
         self.bullets.clear()
@@ -90,8 +93,8 @@ class Game:
                 self.draw_text_at_center("Waiting for joining the server", True, seconds_loop)
                 if self.game_ended:
                     break
+                self.update_multiplayer()
                 if time.time() - seconds > 0.2 or seconds_bool:
-                    self.update_multiplayer()
                     self.add_client()
                     seconds = time.time()
                     seconds_bool = False
@@ -101,11 +104,13 @@ class Game:
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while self.wait_for_multiplayer_game:
-                self.draw_text_at_center("Waiting for players", True, seconds_loop)
+                self.draw_text_at_center("Waiting for players", True, seconds_loop, True)
                 if self.game_ended:
                     break
+                self.update_multiplayer()
                 if time.time() - seconds > 0.2 or seconds_bool:
-                    self.update_multiplayer()
+                    if time.time() - self.last_update_nicks > 3:
+                        self.get_nicks()
                     self.could_start_game()
                     seconds = time.time()
                     seconds_bool = False
@@ -124,7 +129,7 @@ class Game:
             self.client.update()
             self.move_pipes()
             self.move_bullets()
-            # self.check_collisions()
+            self.check_collisions()
 
             if self.multiplayer and time.time() - seconds > 0.05:
                 self.send_position_update()
@@ -219,6 +224,10 @@ class Game:
                             self.started = True
                             self.s.close()
                             self.server_connected = False
+                    if game_event[0] == 'get nicks':
+                        self.last_update_nicks = time.time()
+                        game_event.pop(0)
+                        self.nicks_before_game = game_event.copy()
                 except Exception:
                     print(end='')
 
@@ -248,7 +257,6 @@ class Game:
                     for pipe in self.pipes:
                         pipe.right_pressed = True
                 elif event.key == K_ESCAPE:
-                    # self.client.escape_pressed = True
                     self.action_when_quit_game()
                 elif event.key == K_SPACE:
                     # if self.boss_mode:
@@ -277,7 +285,7 @@ class Game:
                 font = pygame.font.Font(None, 15)
                 text = font.render(actual_client_nick, True, (0, 0, 0))
                 self.SCREEN.blit(text, (actual_client_x,
-                                        self.client.total_y - actual_client_total_y + actual_client_y + self.client.height/2))
+                                        self.client.total_y - actual_client_total_y + actual_client_y + self.client.height / 2))
 
         self.SCREEN.blit(img, (client.x, client.y))
 
@@ -298,7 +306,7 @@ class Game:
             img = pygame.image.load('bullet.png')
             self.SCREEN.blit(img, (bullet.x, bullet.y))
 
-    def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
+    def draw_text_at_center(self, text_to_draw, dots, t=time.time(), nicks=False):
         if dots:
             if int(time.time() - t) % 4 == 1:
                 text_to_draw += '.'
@@ -310,6 +318,15 @@ class Game:
         font = pygame.font.Font(None, 16)
         text = font.render(text_to_draw, True, (0, 0, 0))
         self.SCREEN.blit(text, (10, SCREENHEIGHT / 2 - 8))
+
+        size = 16
+        y = SCREENHEIGHT / 2 + size
+        if nicks:
+            for nick in self.nicks_before_game:
+                font = pygame.font.Font(None, size)
+                text = font.render(nick, True, (0, 0, 0))
+                self.SCREEN.blit(text, (10, y))
+                y += size
         pygame.display.update()
 
     def move_bullets(self):
@@ -318,14 +335,6 @@ class Game:
                 self.bullets.remove(bullet)
             else:
                 bullet.y -= SPEED * 10
-
-    # def wait_for_server(self):
-    # while True:
-    # data = self.s.recv(4096)
-    # if len(data) == 0:
-    # self.s.connect((self.server_address, self.port))
-    # else:
-    # break
 
     def move_pipes(self):
         in_middle = False
@@ -351,9 +360,6 @@ class Game:
                 # self.boss_mode = True
 
         if in_middle or len(self.pipes) == 0:
-            # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
-            # len(self.pipes) - 1].right_pipe_width == 0:
-            # self.wait_for_server()
             if len(self.pipes) == 0:
                 y_value = -10
             if not self.boss_mode:
@@ -395,6 +401,9 @@ class Game:
 
     def could_start_game(self):
         self.send_data(['could start game'])
+
+    def get_nicks(self):
+        self.send_data(['get nicks'])
 
     def add_pipe(self, y_value, delay):
         pipe = Pipe(0, 0, self.client)
