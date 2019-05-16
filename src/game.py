@@ -282,8 +282,8 @@ class Game:
 
     def draw_pipes(self):
         for pipe in self.pipes:
-            pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(0, pipe.y, pipe.left_pipe_width, pipe.height))
-            pygame.draw.rect(self.SCREEN, (255, 0, 0),
+            pygame.draw.rect(self.SCREEN, (0, 0, 0), pygame.Rect(0, pipe.y, pipe.left_pipe_width, pipe.height))
+            pygame.draw.rect(self.SCREEN, (0, 0, 0),
                              pygame.Rect(SCREENWIDTH - pipe.right_pipe_width, pipe.y, pipe.right_pipe_width,
                                          pipe.height))
 
