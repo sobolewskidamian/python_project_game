@@ -8,10 +8,12 @@ import pickle
 import select
 import socket
 
-from bullet import Bullet, SPEED
-from pipe import Pipe
-from square import Square
-from generator import Generator
+from src.bullet import Bullet, SPEED
+from src.pipe import Pipe
+from src.square import Square
+from src.generator import Generator
+
+from src.boss import Boss
 
 pygame.init()
 
@@ -38,6 +40,7 @@ class Game:
         self.pipes_under_middle = []
         self.bullets = []
         self.boss_mode = False
+        self.boss = Boss()
 
         self.s = None
         self.server_connected = False
@@ -124,6 +127,7 @@ class Game:
             self.client.update()
             self.move_pipes()
             self.move_bullets()
+            self.move_boss()
             self.check_collisions()
 
             if self.multiplayer and time.time() - seconds > 0.05:
@@ -302,7 +306,7 @@ class Game:
 
     def draw_boss(self):
         img = pygame.image.load('boss.png')
-        self.SCREEN.blit(img, (100, 20))
+        self.SCREEN.blit(img, (self.boss.x, self.boss.y))
 
     def draw_hp_bar(self):
         pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 480, 2 * self.client.hp, 20))
@@ -328,6 +332,20 @@ class Game:
     # self.s.connect((self.server_address, self.port))
     # else:
     # break
+    def move_boss(self):
+        if self.boss.y < 10:
+            self.boss.y += 0.5
+        elif self.boss.destination != self.boss.x:
+            if self.boss.x - self.boss.destination < 0:
+                self.boss.x += 2
+            else:
+                self.boss.x -= 2
+        else:
+            self.boss.destination = random.randint(0, 200)
+            if self.boss.destination % 2 == 0:
+                pass
+            else:
+                self.boss.destination += 2 - self.boss.destination % 2
 
     def move_bullets(self):
         for bullet in self.bullets:
