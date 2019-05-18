@@ -10,5 +10,3 @@ class Boss:
         self.damage = 34
         self.destination = 100
 
-
-5
