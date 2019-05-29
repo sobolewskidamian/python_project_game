@@ -132,6 +132,17 @@ def update_world(message):
 
             send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
 
+        elif arr[0] == 'bullets location':
+            client_id = arr[1]
+
+            if client_id not in clients: return
+
+            if score not in pipes:
+                left, right = Generator().get_width_left_and_beetween(score)
+                pipes[score] = [left, right]
+
+            send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
+
     except Exception:
         print(end='')
 

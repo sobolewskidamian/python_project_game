@@ -8,19 +8,19 @@ import pickle
 import select
 import socket
 
-from src.bullets import Bullet, SPEED, FireBallLeft, FireBallRight, Rocket, BossBullet, DAMAGE_PLAYER, DAMAGE_BOSS
-from src.pipe import Pipe
-from src.square import Square
-from src.generator import Generator
+from bullets import Bullet, SPEED, FireBallLeft, FireBallRight, Rocket, BossBullet, DAMAGE_PLAYER, DAMAGE_BOSS
+from pipe import Pipe
+from square import Square
+from generator import Generator
 
-from src.boss import Boss
+from boss import Boss
 
 pygame.init()
 
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 BUFFERSIZE = 2048
-LAP = 2
+LAP = 10
 
 
 class Game:
@@ -436,7 +436,7 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if self.client.score % LAP == 0:
+                if round(self.client.score) % LAP == 0:
                     self.boss_mode = True
                     self.boss_dead = False
 
@@ -482,6 +482,9 @@ class Game:
 
     def add_client(self):
         self.send_data(['add client', self.client.pid, self.nick])
+
+    def add_bullets(self):
+        self.send_data(['bullets location',self.client.pid])
 
     def could_start_game(self):
         self.send_data(['could start game'])
