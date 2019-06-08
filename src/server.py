@@ -16,6 +16,7 @@ clients = {}
 client_times = {}
 pipes = {}
 boss = Boss()
+boss_dead = True
 amount_of_clients = 0
 game_is_running = False
 dead_clients = {}
@@ -135,6 +136,33 @@ def update_world(message):
                 data.append(clients[id].nick)
 
             send_to_all(data)
+
+        elif arr[0] == 'init boss':
+            client_id = arr[1]
+            global boss, boss_dead
+            if boss_dead:
+                boss = Boss()
+                boss_dead = False
+                send_to_all(['init boss', client_id, boss])
+            else:
+                send_to_all(['init boss', client_id, boss])
+
+        elif arr[0] == 'update hp':
+            client_id = arr[1]
+            global boss
+            boss.hp = client_id.boss.hp
+            send_to_all(['update hp', client_id, boss.hp])
+
+        elif arr[0] == 'boss dead':
+            global boss
+            boss = None
+            boss_dead = True
+            send_to_all(['boss dead'])
+
+        elif arr[0] == 'get hp':
+            client_id = arr[1]
+            global boss
+            send_to_all(['get hp', client_id, boss.hp])
 
     except Exception:
         print(end='')

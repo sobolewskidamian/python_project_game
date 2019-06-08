@@ -23,11 +23,14 @@ class Square:
         self.y_value = 0
         self.boss_level = 1
         self.boss = Boss()
+        self.boss_mode = False
+        self.boss_dead = True
         self.jump_delay = 0
         self.dead = False
 
         self.left_pressed = False
         self.right_pressed = False
+        self.escape_pressed = False
 
     def update(self):
         self.y_value += GRAVITY

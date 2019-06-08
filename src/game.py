@@ -25,7 +25,6 @@ LAP = 5
 
 class Game:
     def __init__(self, nick, SCREEN, FPSCLOCK, FPS):
-        self.boss_level = 1
         self.SCREEN = SCREEN
         self.FPSCLOCK = FPSCLOCK
         self.FPS = FPS
@@ -33,6 +32,7 @@ class Game:
         self.port = 0
         self.server_address = ''
 
+        self.boss_level = 1
         self.nick = nick
         self.game_ended = True
         self.started = False
@@ -41,8 +41,6 @@ class Game:
         self.pipes = []
         self.pipes_under_middle = []
         self.bullets = []
-        self.boss_mode = False
-        self.boss_dead = True
         self.boss_bullets = []
         self.boss_rockets = []
         self.fire_balls_left = []
@@ -54,14 +52,24 @@ class Game:
         self.client_added = False
         self.client = Square(random.randint(1000, 1000000))
         self.clients = {}
+        self.client.boss_dead = True
+        self.client.boss_mode = False
+        if self.multiplayer:
+            for user in self.clients:
+                user.boss_mode = False
+                user.boss_dead = True
 
     def restart(self):
         self.started = False
         self.client.dead = True
         self.wait_for_multiplayer_game = True
         self.client_added = False
-        self.boss_mode = False
-        self.boss_dead = True
+        self.client.boss_dead = True
+        self.client.boss_mode = False
+        if self.multiplayer:
+            for user in self.clients:
+                user.boss_mode = False
+                user.boss_dead = True
         if self.multiplayer:
             self.delete_client()
         self.clients.clear()
@@ -136,7 +144,7 @@ class Game:
         while not self.client.dead:
             self.update_multiplayer()
             self.watch_for_click()
-            if not self.boss_mode:
+            if not self.client.boss_mode:
                 self.client.update()
             else:
                 self.client.boss_mode_update()
@@ -144,11 +152,11 @@ class Game:
             self.move_bullets()
             self.move_boss()
             self.check_collisions()
-            if self.boss_dead:
-                self.boss_mode = False
-            if self.tick % 60 == 0 and self.boss_mode:
+            if self.client.boss_dead:
+                self.client.boss_mode = False
+            if self.tick % 60 == 0 and self.client.boss_mode:
                 self.add_rocket()
-            if self.tick % 20 == 0 and self.boss_mode:
+            if self.tick % 20 == 0 and self.client.boss_mode:
                 self.add_boss_bullets()
             self.tick += 1
             if self.tick > 100000000:
@@ -163,7 +171,7 @@ class Game:
             self.draw_score()
             self.draw_hp_bar()
             self.draw_bullets()
-            if self.boss_mode and not self.boss_dead:
+            if self.client.boss_mode and not self.client.boss_dead:
                 self.draw_boss()
                 self.draw_boss_hp_bar()
 
@@ -247,6 +255,21 @@ class Game:
                             self.started = True
                             self.s.close()
                             self.server_connected = False
+                    if game_event[0] == 'init boss':
+                        client_id = game_event[1]
+                        client_id.boss = game_event[2]
+                    if game_event[0] == 'update hp':
+                        client_id = game_event[1]
+                        client_id.boss.hp = game_event[2]
+                    if game_event[0] == 'get hp':
+                        client_id = game_event[1]
+                        client_id.boss.hp = game_event[2]
+                    if game_event[0] == 'boss dead':
+                        for user in self.clients.values():
+                            user.boss_mode = False
+                            user.boss_dead = True
+                            user.boss = None
+
                 except Exception:
                     print(end='')
 
@@ -279,7 +302,7 @@ class Game:
                     # self.client.escape_pressed = True
                     self.action_when_quit_game()
                 elif event.key == K_SPACE:
-                    if self.boss_mode:
+                    if self.client.boss_mode:
                         self.add_bullet()
 
                 self.started = True
@@ -348,6 +371,8 @@ class Game:
         pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 490, 2 * self.client.hp, 10))
 
     def draw_boss_hp_bar(self):
+        if self.multiplayer:
+            self.send_data(['get hp', self.client.pid])
         pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 10, self.client.boss.hp, 10))
 
     def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
@@ -434,8 +459,15 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if round(self.client.score) % LAP == 0 and self.client.boss_level + 1 >= self.boss_level:
-                    self.add_boss()
+                if round(self.client.score) % LAP == 0:
+                    if self.client.boss_level + 1 >= self.boss_level:
+                        print(self.client.boss_level)
+                        print(self.boss_level)
+                        self.boss_level += 1
+                        self.client.boss_level += 1
+                        self.add_boss()
+                    else:
+                        self.client.boss_level += 1
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
@@ -443,7 +475,7 @@ class Game:
             # self.wait_for_server()
             if len(self.pipes) == 0:
                 y_value = -10
-            if not self.boss_mode:
+            if not self.client.boss_mode:
                 self.add_pipe(y_value, delay)
 
         for pipe in self.pipes:
@@ -475,7 +507,7 @@ class Game:
         self.send_data(['pipe location', self.client.pid, self.client.score + 1])
 
     def send_boss_request(self):
-        self.send_data(['boss',self.client.pid])
+        self.send_data(['boss', self.client.pid])
 
     def delete_client(self):
         self.send_data(['delete client', self.client.pid])
@@ -484,7 +516,7 @@ class Game:
         self.send_data(['add client', self.client.pid, self.nick])
 
     def add_bullets(self):
-        self.send_data(['bullets location',self.client.pid])
+        self.send_data(['bullets location', self.client.pid])
 
     def could_start_game(self):
         self.send_data(['could start game'])
@@ -549,18 +581,23 @@ class Game:
         for bullet in self.bullets:
             if bullet.if_hit(self.client.boss.x, self.client.boss.y, self.client.boss.width, self.client.boss.height):
                 self.client.boss.hp -= DAMAGE_PLAYER
+                if self.multiplayer:
+                    self.send_data(['update hp', self.client.pid, self.client.boss.hp])
                 self.bullets.remove(bullet)
                 self.client.score += 0.25
                 if self.client.boss.hp < 0:
                     self.client.score += 10
-                    self.boss_mode = False
-                    self.client.boss.dead = True
-                    self.client.boss = None
-                    self.client.boss = Boss()
+                    if not self.multiplayer:
+                        self.client.boss_mode = False
+                        self.client.boss.dead = True
+                        self.client.boss = None
+                        self.client.boss = Boss()
                     self.boss_bullets.clear()
                     self.fire_balls_right.clear()
                     self.fire_balls_left.clear()
                     self.boss_rockets.clear()
+                    if self.multiplayer:
+                        self.send_data(['boss dead', self.client.pid])
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
             self.client.dead = True
@@ -570,5 +607,9 @@ class Game:
         self.fire_balls_right.append(FireBallRight(x, y))
 
     def add_boss(self):
-        self.boss_mode = True
-        self.boss_dead = False
+        self.client.boss_mode = True
+        self.client.boss_dead = False
+        if self.multiplayer:
+            self.send_data(['init boss', self.client.pid, self.client.boss])
+        else:
+            self.client.boss = Boss()
