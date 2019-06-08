@@ -8,16 +8,20 @@ import pickle
 from square import Square
 from generator import Generator
 
+from boss import Boss
+
 BUFFERSIZE = 512
 offline_time = 10
 outgoing = []
 clients = {}
 client_times = {}
 pipes = {}
+boss = Boss()
 amount_of_clients = 0
 game_is_running = False
 dead_clients = {}
 last_access_time = time.time()
+boss_number = 1
 
 
 def print_new_game():
@@ -131,6 +135,13 @@ def update_world(message):
                 pipes[score] = [left, right]
 
             send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
+
+        elif arr[0] == 'hp':
+            client_id = arr[1]
+
+            if client_id not in clients: return
+
+            send_to_all(['hp', boss.hp])
 
     except Exception:
         print(end='')

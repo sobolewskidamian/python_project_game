@@ -1,3 +1,5 @@
+from boss import Boss
+
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
@@ -19,6 +21,8 @@ class Square:
         self.YVALUE = -10
         self.x_value = 0
         self.y_value = 0
+        self.boss_level = 1
+        self.boss = Boss()
         self.jump_delay = 0
         self.dead = False
 
@@ -44,6 +48,36 @@ class Square:
                 self.left_pressed = False
             if self.right_pressed:
                 self.x_value = self.XVALUE
+                self.right_pressed = False
+
+        if self.y_value > 0 or self.y > SCREENHEIGHT / 2 - self.height / 2:
+            self.y += self.y_value
+
+        self.x += self.x_value
+
+        if self.x >= SCREENWIDTH:
+            self.x = -self.width + 1
+        elif self.x <= -self.width:
+            self.x = SCREENWIDTH - 1
+
+    def boss_mode_update(self):
+        self.y_value += GRAVITY/5
+
+        if self.jump_delay > 0:
+            self.jump_delay -= 1
+
+        if self.escape_pressed:
+            self.dead = True
+            self.escape_pressed = False
+
+        if not self.dead and self.jump_delay <= 0 and (self.left_pressed or self.right_pressed):
+            self.y_value = self.YVALUE/5
+            self.jump_delay = 5
+            if self.left_pressed:
+                self.x_value = -self.XVALUE/2
+                self.left_pressed = False
+            if self.right_pressed:
+                self.x_value = self.XVALUE/2
                 self.right_pressed = False
 
         if self.y_value > 0 or self.y > SCREENHEIGHT / 2 - self.height / 2:
