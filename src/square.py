@@ -1,3 +1,5 @@
+from boss import Boss
+
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
@@ -19,6 +21,8 @@ class Square:
         self.YVALUE = -10
         self.x_value = 0
         self.y_value = 0
+        self.boss_level = 1
+        self.boss = Boss()
         self.jump_delay = 0
         self.dead = False
 

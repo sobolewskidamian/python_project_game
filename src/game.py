@@ -20,11 +20,12 @@ pygame.init()
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 BUFFERSIZE = 2048
-LAP = 10
+LAP = 5
 
 
 class Game:
     def __init__(self, nick, SCREEN, FPSCLOCK, FPS):
+        self.boss_level = 1
         self.SCREEN = SCREEN
         self.FPSCLOCK = FPSCLOCK
         self.FPS = FPS
@@ -41,7 +42,6 @@ class Game:
         self.pipes_under_middle = []
         self.bullets = []
         self.boss_mode = False
-        self.boss = Boss()
         self.boss_dead = True
         self.boss_bullets = []
         self.boss_rockets = []
@@ -74,8 +74,6 @@ class Game:
         self.boss_rockets.clear()
         self.fire_balls_left.clear()
         self.fire_balls_right.clear()
-        self.boss = None
-        self.boss = Boss()
 
     def play(self):
         self.clean_screen()
@@ -344,13 +342,13 @@ class Game:
 
     def draw_boss(self):
         img = pygame.image.load('images/boss.png')
-        self.SCREEN.blit(img, (self.boss.x, self.boss.y))
+        self.SCREEN.blit(img, (self.client.boss.x, self.client.boss.y))
 
     def draw_hp_bar(self):
         pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 490, 2 * self.client.hp, 10))
 
     def draw_boss_hp_bar(self):
-        pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 10, self.boss.hp, 10))
+        pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 10, self.client.boss.hp, 10))
 
     def draw_text_at_center(self, text_to_draw, dots, t=time.time()):
         if dots:
@@ -367,19 +365,19 @@ class Game:
         pygame.display.update()
 
     def move_boss(self):
-        if self.boss.y < 10:
-            self.boss.y += 0.5
-        elif self.boss.destination != self.boss.x:
-            if self.boss.x - self.boss.destination < 0:
-                self.boss.x += 2
+        if self.client.boss.y < 10:
+            self.client.boss.y += 0.5
+        elif self.client.boss.destination != self.client.boss.x:
+            if self.client.boss.x - self.client.boss.destination < 0:
+                self.client.boss.x += 2
             else:
-                self.boss.x -= 2
+                self.client.boss.x -= 2
         else:
-            self.boss.destination = random.randint(-70, 270)
-            if self.boss.destination % 2 == 0:
+            self.client.boss.destination = random.randint(-70, 270)
+            if self.client.boss.destination % 2 == 0:
                 pass
             else:
-                self.boss.destination += 2 - self.boss.destination % 2
+                self.client.boss.destination += 2 - self.client.boss.destination % 2
 
     # def wait_for_server(self):
     # while True:
@@ -436,9 +434,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if round(self.client.score) % LAP == 0:
-                    self.boss_mode = True
-                    self.boss_dead = False
+                if round(self.client.score) % LAP == 0 and self.client.boss_level + 1 >= self.boss_level:
+                    self.add_boss()
 
         if in_middle or len(self.pipes) == 0:
             # if in_middle and self.multiplayer and self.pipes[len(self.pipes) - 1].left_pipe_width == 0 and self.pipes[
@@ -477,6 +474,9 @@ class Game:
     def get_pipe_size_from_server(self):
         self.send_data(['pipe location', self.client.pid, self.client.score + 1])
 
+    def send_boss_request(self):
+        self.send_data(['boss',self.client.pid])
+
     def delete_client(self):
         self.send_data(['delete client', self.client.pid])
 
@@ -507,12 +507,12 @@ class Game:
         self.bullets.append(bullet2)
 
     def add_rocket(self):
-        rocket = Rocket(self.boss.x + 31, self.boss.y + 67, random.randint(280, 490))
+        rocket = Rocket(self.client.boss.x + 31, self.client.boss.y + 67, random.randint(280, 490))
         self.boss_rockets.append(rocket)
 
     def add_boss_bullets(self):
-        bullet1 = BossBullet(self.boss.x + 10, self.boss.y + 76)
-        bullet2 = BossBullet(self.boss.x + 62, self.boss.y + 76)
+        bullet1 = BossBullet(self.client.boss.x + 10, self.client.boss.y + 76)
+        bullet2 = BossBullet(self.client.boss.x + 62, self.client.boss.y + 76)
         self.boss_bullets.append(bullet1)
         self.boss_bullets.append(bullet2)
 
@@ -547,16 +547,16 @@ class Game:
                 self.client.dead = True
 
         for bullet in self.bullets:
-            if bullet.if_hit(self.boss.x, self.boss.y, self.boss.width, self.boss.height):
-                self.boss.hp -= DAMAGE_PLAYER
+            if bullet.if_hit(self.client.boss.x, self.client.boss.y, self.client.boss.width, self.client.boss.height):
+                self.client.boss.hp -= DAMAGE_PLAYER
                 self.bullets.remove(bullet)
                 self.client.score += 0.25
-                if self.boss.hp < 0:
+                if self.client.boss.hp < 0:
                     self.client.score += 10
                     self.boss_mode = False
-                    self.boss.dead = True
-                    self.boss = None
-                    self.boss = Boss()
+                    self.client.boss.dead = True
+                    self.client.boss = None
+                    self.client.boss = Boss()
                     self.boss_bullets.clear()
                     self.fire_balls_right.clear()
                     self.fire_balls_left.clear()
@@ -568,3 +568,7 @@ class Game:
     def rocket_explode(self, x, y):
         self.fire_balls_left.append(FireBallLeft(x, y))
         self.fire_balls_right.append(FireBallRight(x, y))
+
+    def add_boss(self):
+        self.boss_mode = True
+        self.boss_dead = False
