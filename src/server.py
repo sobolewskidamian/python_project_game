@@ -2,11 +2,10 @@ import sys
 import time
 import socket
 import asyncore
-import random
 import pickle
 
-from square import Square
 from generator import Generator
+from square import Square
 
 from boss import Boss
 
@@ -22,6 +21,7 @@ game_is_running = False
 dead_clients = {}
 last_access_time = time.time()
 boss_number = 1
+game_id = 1
 
 
 def print_new_game():
@@ -40,13 +40,14 @@ def send_to_all(data):
 
 
 def action_when_no_players():
-    global game_is_running
+    global game_is_running, game_id
     time.sleep(0.1)
     pipes.clear()
     print_stats()
     dead_clients.clear()
     print_new_game()
     game_is_running = False
+    game_id += 1
     send_to_all(['start adding'])
 
 
@@ -85,21 +86,13 @@ def update_world(message):
                         game_is_running = True
                         for id in clients:
                             client_times[id] = time.time()
-                        send_to_all(['start game'])
+                        send_to_all(['start game', game_id, id])
 
             remove_offline_clients()
-            # else:
-            # for i in outgoing:
-            # update = ['game is running', id]
-            # try:
-            # i.send(pickle.dumps(update))
-            # except Exception:
-            # outgoing.remove(i)
-            # continue
 
         elif arr[0] == 'could start game':
             if len(clients) == amount_of_clients:
-                start = ['start game']
+                start = ['start game', game_id]
                 for id in clients:
                     start.append(id)
                 send_to_all(start)
@@ -119,7 +112,7 @@ def update_world(message):
             clients[client_id].y = y
             clients[client_id].score = score
 
-            to_send = ['position update']
+            to_send = ['position update', game_id]
             for key, value in clients.items():
                 to_send.append([value.pid, value.x, value.total_y, value.y, value.nick])
             send_to_all(to_send)
@@ -136,12 +129,12 @@ def update_world(message):
 
             send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
 
-        elif arr[0] == 'hp':
-            client_id = arr[1]
+        elif arr[0] == 'get nicks':
+            data = [arr[0]]
+            for id in clients:
+                data.append(clients[id].nick)
 
-            if client_id not in clients: return
-
-            send_to_all(['hp', boss.hp])
+            send_to_all(data)
 
     except Exception:
         print(end='')
@@ -160,6 +153,7 @@ def remove_offline_clients():
 
     if len(clients) == 0:
         action_when_no_players()
+
 
 class MainServer(asyncore.dispatcher):
     def __init__(self, port):
@@ -230,7 +224,7 @@ def main(argv):
             MainServer(port)
             asyncore.loop()
         except Exception:
-            #MainServer.close()
+            # MainServer.close()
             print("Server stopped")
     elif len(argv) != 3 or int(argv[1]) <= 0 or int(argv[2]) <= 0:
         print("Usage:")

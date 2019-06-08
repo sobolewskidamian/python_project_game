@@ -13,10 +13,7 @@ from pipe import Pipe
 from square import Square
 from generator import Generator
 
-<<<<<<< HEAD
-=======
 from boss import Boss
->>>>>>> boss_mode
 
 pygame.init()
 

@@ -28,7 +28,6 @@ class Square:
 
         self.left_pressed = False
         self.right_pressed = False
-        self.escape_pressed = False
 
     def update(self):
         self.y_value += GRAVITY
@@ -36,19 +35,16 @@ class Square:
         if self.jump_delay > 0:
             self.jump_delay -= 1
 
-        if self.escape_pressed:
-            self.dead = True
-            self.escape_pressed = False
-
         if not self.dead and self.jump_delay <= 0 and (self.left_pressed or self.right_pressed):
             self.y_value = self.YVALUE
             self.jump_delay = 5
-            if self.left_pressed:
+            if self.left_pressed and not self.right_pressed:
                 self.x_value = -self.XVALUE
-                self.left_pressed = False
-            if self.right_pressed:
+            else:
                 self.x_value = self.XVALUE
-                self.right_pressed = False
+
+            self.left_pressed = False
+            self.right_pressed = False
 
         if self.y_value > 0 or self.y > SCREENHEIGHT / 2 - self.height / 2:
             self.y += self.y_value
