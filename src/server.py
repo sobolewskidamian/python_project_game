@@ -1,4 +1,3 @@
-import random
 import sys
 import time
 import socket
@@ -7,8 +6,8 @@ import pickle
 
 from generator import Generator
 from square import Square
-
 from boss import Boss
+from bullets import DAMAGE_PLAYER
 
 BUFFERSIZE = 512
 offline_time = 10
@@ -17,7 +16,6 @@ clients = {}
 client_times = {}
 pipes = {}
 boss = Boss()
-boss_dead = True
 amount_of_clients = 0
 game_is_running = False
 dead_clients = {}
@@ -42,11 +40,12 @@ def send_to_all(data):
 
 
 def action_when_no_players():
-    global game_is_running, game_id
+    global game_is_running, game_id, boss
     time.sleep(0.1)
     pipes.clear()
     print_stats()
     dead_clients.clear()
+    boss = Boss()
     print_new_game()
     game_is_running = False
     game_id += 1
@@ -54,7 +53,7 @@ def action_when_no_players():
 
 
 def update_world(message):
-    global game_is_running, boss, boss_dead
+    global game_is_running, boss
     try:
         arr = pickle.loads(message)
 
@@ -140,24 +139,24 @@ def update_world(message):
 
         elif arr[0] == 'init boss':
             client_id = arr[1]
-            if boss_dead:
+            if boss.hp <= 0:
                 boss = Boss()
-                boss_dead = False
-            send_to_all(['init boss', client_id, boss])
+            send_to_all(['init boss', boss.hp])
 
-        elif arr[0] == 'update hp':
-            client_id = arr[1]
-            boss.hp = client_id.boss.hp
-            send_to_all(['update hp', client_id, boss.hp])
+        #elif arr[0] == 'boss dead':
+        #    boss = None
+        #    boss_dead = True
+        #    send_to_all(['boss dead'])
 
-        elif arr[0] == 'boss dead':
-            boss = None
-            boss_dead = True
-            send_to_all(['boss dead'])
+        elif arr[0] == 'hit boss':
+            boss.hp -= DAMAGE_PLAYER
+            if boss.hp <= 0:
+                send_to_all(['boss dead'])
+            else:
+                send_to_all(['get hp', boss.hp])
 
         elif arr[0] == 'get hp':
-            client_id = arr[1]
-            send_to_all(['get hp', client_id, boss.hp])
+            send_to_all(['get hp', boss.hp])
 
     except Exception:
         print(end='')

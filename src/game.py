@@ -20,7 +20,7 @@ pygame.init()
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 BUFFERSIZE = 2048
-LAP = 5
+LAP = 2
 
 # pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
@@ -286,14 +286,9 @@ class Game:
                         game_event.pop(0)
                         self.nicks_before_game = game_event.copy()
                     if game_event[0] == 'init boss':
-                        client_id = game_event[1]
-                        client_id.boss = game_event[2]
-                    if game_event[0] == 'update hp':
-                        client_id = game_event[1]
-                        client_id.boss.hp = game_event[2]
+                        self.client.boss.hp = game_event[1]
                     if game_event[0] == 'get hp':
-                        client_id = game_event[1]
-                        client_id.boss.hp = game_event[2]
+                        self.client.boss.hp = game_event[1]
                     if game_event[0] == 'boss dead':
                         for user in self.clients.values():
                             user.boss_mode = False
@@ -625,7 +620,7 @@ class Game:
             if bullet.if_hit(self.client.boss.x, self.client.boss.y, self.client.boss.width, self.client.boss.height):
                 self.client.boss.hp -= DAMAGE_PLAYER
                 if self.multiplayer:
-                    self.send_data(['update hp', self.client.pid, self.client.boss.hp])
+                    self.send_data(['hit boss'])
                 self.bullets.remove(bullet)
                 self.client.score += 0.25
                 if self.client.boss.hp < 0:
@@ -641,8 +636,8 @@ class Game:
                     self.fire_balls_right.clear()
                     self.fire_balls_left.clear()
                     self.boss_rockets.clear()
-                    if self.multiplayer:
-                        self.send_data(['boss dead', self.client.pid])
+                    #if self.multiplayer:
+                        #self.send_data(['boss dead', self.client.pid])
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
             # death_sound.play()
@@ -660,6 +655,6 @@ class Game:
         self.client.boss_dead = False
         boss_intro.play(5)
         if self.multiplayer:
-            self.send_data(['init boss', self.client.pid, self.client.boss])
+            self.send_data(['init boss'])
         else:
             self.client.boss = Boss()
