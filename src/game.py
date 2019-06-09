@@ -23,6 +23,12 @@ BUFFERSIZE = 2048
 LAP = 5
 
 
+#pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
+death_sound = pygame.mixer.Sound('sounds/death.wav')
+shot_sound = pygame.mixer.Sound('sounds/laser1.wav')
+
+music = pygame.mixer.music.load('sounds/5966459_space-shooter-theme_by_matthewpablo_preview.wav')
+
 class Game:
     def __init__(self, nick, SCREEN, FPSCLOCK, FPS):
         self.SCREEN = SCREEN
@@ -60,16 +66,18 @@ class Game:
                 user.boss_dead = True
 
     def restart(self):
+        self.client.boss_dead = True
         self.started = False
+        self.boss_level = 1
         self.client.dead = True
         self.wait_for_multiplayer_game = True
         self.client_added = False
-        self.client.boss_dead = True
         self.client.boss_mode = False
         if self.multiplayer:
             for user in self.clients:
                 user.boss_mode = False
                 user.boss_dead = True
+                user.boss_level = 1
         if self.multiplayer:
             self.delete_client()
         self.clients.clear()
@@ -82,11 +90,14 @@ class Game:
         self.boss_rockets.clear()
         self.fire_balls_left.clear()
         self.fire_balls_right.clear()
+        pygame.mixer.music.stop()
+        pygame.mixer.music.play(-1)
 
     def play(self):
         self.clean_screen()
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
+        pygame.mixer.Channel(4).play(pygame.mixer.Sound('sounds/5966459_space-shooter-theme_by_matthewpablo_preview.wav'))
 
         if self.multiplayer:
             if not self.server_connected:
@@ -461,8 +472,6 @@ class Game:
                 self.client.score += 1
                 if round(self.client.score) % LAP == 0:
                     if self.client.boss_level + 1 >= self.boss_level:
-                        print(self.client.boss_level)
-                        print(self.boss_level)
                         self.boss_level += 1
                         self.client.boss_level += 1
                         self.add_boss()
@@ -535,8 +544,10 @@ class Game:
     def add_bullet(self):
         bullet1 = Bullet(self.client.x + 1, self.client.y - 1)
         bullet2 = Bullet(self.client.x + 17, self.client.y - 1)
+        shot_sound.play()
         self.bullets.append(bullet1)
         self.bullets.append(bullet2)
+
 
     def add_rocket(self):
         rocket = Rocket(self.client.boss.x + 31, self.client.boss.y + 67, random.randint(280, 490))
@@ -551,6 +562,8 @@ class Game:
     def check_collisions(self):
         for pipe in self.pipes:
             if pipe.collides(self.client.x, self.client.y, self.client.width, self.client.height):
+                #death_sound.play()
+                pygame.mixer.music.stop()
                 self.client.dead = True
 
         for bullet in self.boss_bullets:
@@ -558,6 +571,8 @@ class Game:
                 self.client.hp -= DAMAGE_BOSS
                 self.boss_bullets.remove(bullet)
                 if self.client.hp < 0:
+                    pygame.mixer.music.stop()
+                    death_sound.play()
                     self.client.dead = True
 
         for fireball in self.fire_balls_right:
@@ -565,6 +580,7 @@ class Game:
                 self.client.hp -= DAMAGE_BOSS
                 self.fire_balls_right.remove(fireball)
                 if self.client.hp < 0:
+                    death_sound.play()
                     self.client.dead = True
 
         for fireball in self.fire_balls_left:
@@ -572,10 +588,12 @@ class Game:
                 self.client.hp -= DAMAGE_BOSS
                 self.fire_balls_left.remove(fireball)
                 if self.client.hp < 0:
+                    death_sound.play()
                     self.client.dead = True
 
         for rocket in self.boss_rockets:
             if rocket.if_got_shot(self.client.x, self.client.y, self.client.width, self.client.height):
+                death_sound.play()
                 self.client.dead = True
 
         for bullet in self.bullets:
@@ -587,6 +605,8 @@ class Game:
                 self.client.score += 0.25
                 if self.client.boss.hp < 0:
                     self.client.score += 10
+                    pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/round_end.wav"))
+                    pygame.mixer.music.stop()
                     if not self.multiplayer:
                         self.client.boss_mode = False
                         self.client.boss.dead = True
@@ -600,15 +620,20 @@ class Game:
                         self.send_data(['boss dead', self.client.pid])
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
+            #death_sound.play()
+            pygame.mixer.music.stop()
             self.client.dead = True
 
     def rocket_explode(self, x, y):
+        pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/8bit_bomb_explosion.wav"))
+        pygame.mixer.music.stop()
         self.fire_balls_left.append(FireBallLeft(x, y))
         self.fire_balls_right.append(FireBallRight(x, y))
 
     def add_boss(self):
         self.client.boss_mode = True
         self.client.boss_dead = False
+        pygame.mixer.Channel(1).play(pygame.mixer.Sound('sounds/ufo_highpitch.wav'))
         if self.multiplayer:
             self.send_data(['init boss', self.client.pid, self.client.boss])
         else:
