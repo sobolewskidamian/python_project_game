@@ -22,13 +22,13 @@ SCREENHEIGHT = 512
 BUFFERSIZE = 2048
 LAP = 5
 
-
-#pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
+# pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
 shot_sound = pygame.mixer.Sound('sounds/laser1.wav')
 boss_intro = pygame.mixer.Sound('sounds/4.wav')
 
 music = pygame.mixer.music.load('sounds/5966459_space-shooter-theme_by_matthewpablo_preview.wav')
+
 
 class Game:
     def __init__(self, nick, SCREEN, FPSCLOCK, FPS):
@@ -124,7 +124,7 @@ class Game:
             seconds = seconds_loop = time.time()
             seconds_bool = True
             while not self.client_added:
-                self.draw_text_at_center("Waiting for joining the server.", True, seconds_loop)
+                self.draw_text_at_center("Waiting for joining the server", True, seconds_loop)
                 if self.game_ended:
                     break
                 self.update_multiplayer()
@@ -244,9 +244,8 @@ class Game:
                     game_event = pickle.loads(inm.recv(BUFFERSIZE))
 
                     if game_event[0] == 'add client' and not self.client_added:
-                        self.client.pid = game_event[1]
                         self.add_client()
-                    if game_event[0] == 'client added':
+                    if game_event[0] == 'client added' and game_event[1] == self.client.pid:
                         self.client_added = True
                     if game_event[0] == 'position update':
                         game_event.pop(0)
@@ -255,8 +254,6 @@ class Game:
                             if act_client[0] != self.client.pid and self.game_id == game_id:
                                 if act_client[0] not in self.clients:
                                     self.clients[act_client[0]] = Square(act_client[0])
-                                #self.clients[act_client[0]] = [act_client[1], act_client[2], act_client[3],
-                                                               #act_client[4]]
                                 self.clients[act_client[0]].x = act_client[1]
                                 self.clients[act_client[0]].total_y = act_client[2]
                                 self.clients[act_client[0]].y = act_client[3]
@@ -577,7 +574,6 @@ class Game:
         self.bullets.append(bullet1)
         self.bullets.append(bullet2)
 
-
     def add_rocket(self):
         rocket = Rocket(self.client.boss.x + 31, self.client.boss.y + 67, random.randint(280, 490))
         self.boss_rockets.append(rocket)
@@ -591,7 +587,7 @@ class Game:
     def check_collisions(self):
         for pipe in self.pipes:
             if pipe.collides(self.client.x, self.client.y, self.client.width, self.client.height):
-                #death_sound.play()
+                # death_sound.play()
                 pygame.mixer.music.stop()
                 self.client.dead = True
 
@@ -649,7 +645,7 @@ class Game:
                         self.send_data(['boss dead', self.client.pid])
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
-            #death_sound.play()
+            # death_sound.play()
             pygame.mixer.music.stop()
             self.client.dead = True
 
