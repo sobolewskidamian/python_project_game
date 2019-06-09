@@ -1,3 +1,4 @@
+import random
 import sys
 import time
 import socket
@@ -11,7 +12,7 @@ from boss import Boss
 
 BUFFERSIZE = 512
 offline_time = 10
-outgoing = []
+outgoing = {}
 clients = {}
 client_times = {}
 pipes = {}
@@ -34,10 +35,17 @@ def print_new_game():
 def send_to_all(data):
     for i in outgoing:
         try:
-            i.send(pickle.dumps(data))
+            outgoing[i].send(pickle.dumps(data))
         except Exception:
-            outgoing.remove(i)
+            del outgoing[i]
             continue
+
+
+def send_to_one(data, client_id):
+    try:
+        outgoing[client_id].send(pickle.dumps(data))
+    except Exception:
+        del outgoing[client_id]
 
 
 def action_when_no_players():
@@ -53,7 +61,7 @@ def action_when_no_players():
 
 
 def update_world(message):
-    global game_is_running
+    global game_is_running, boss, boss_dead
     try:
         arr = pickle.loads(message)
 
@@ -72,7 +80,7 @@ def update_world(message):
             id = arr[1]
             if id == -1: return
             if id in clients:
-                send_to_all(['client added', id])
+                send_to_one(['client added'], id)
                 return
             if len(clients) < amount_of_clients and not game_is_running:
                 nick = arr[2]
@@ -81,7 +89,7 @@ def update_world(message):
                     client.nick = nick
                     clients[id] = client
                     print("║ Client", id, "added")
-                    send_to_all(['client added', id])
+                    send_to_one(['client added'], id)
 
                     if len(clients) == amount_of_clients:
                         game_is_running = True
@@ -115,8 +123,10 @@ def update_world(message):
 
             to_send = ['position update', game_id]
             for key, value in clients.items():
+                if client_id == value.pid:
+                    continue
                 to_send.append([value.pid, value.x, value.total_y, value.y, value.nick])
-            send_to_all(to_send)
+            send_to_one(to_send, client_id)
 
         elif arr[0] == 'pipe location':
             client_id = arr[1]
@@ -128,7 +138,7 @@ def update_world(message):
                 left, right = Generator().get_width_left_and_beetween(score)
                 pipes[score] = [left, right]
 
-            send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])
+            send_to_one(['pipe location', [client_id, pipes[score][0], pipes[score][1]]], client_id)
 
         elif arr[0] == 'get nicks':
             data = [arr[0]]
@@ -139,29 +149,23 @@ def update_world(message):
 
         elif arr[0] == 'init boss':
             client_id = arr[1]
-            global boss, boss_dead
             if boss_dead:
                 boss = Boss()
                 boss_dead = False
-                send_to_all(['init boss', client_id, boss])
-            else:
-                send_to_all(['init boss', client_id, boss])
+            send_to_all(['init boss', client_id, boss])
 
         elif arr[0] == 'update hp':
             client_id = arr[1]
-            global boss
             boss.hp = client_id.boss.hp
             send_to_all(['update hp', client_id, boss.hp])
 
         elif arr[0] == 'boss dead':
-            global boss
             boss = None
             boss_dead = True
             send_to_all(['boss dead'])
 
         elif arr[0] == 'get hp':
             client_id = arr[1]
-            global boss
             send_to_all(['get hp', client_id, boss.hp])
 
     except Exception:
@@ -206,8 +210,9 @@ class MainServer(asyncore.dispatcher):
         else:
             conn, addr = self.accept()
             print('║ Connection address:' + addr[0] + " " + str(addr[1]))
-            conn.send(pickle.dumps(['add client']))
-            outgoing.append(conn)
+            client_id = random.randint(1000, 1000000)
+            conn.send(pickle.dumps(['add client', client_id]))
+            outgoing[client_id] = conn
             SecondaryServer(conn)
 
     def handle_close(self):
