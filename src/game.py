@@ -290,10 +290,9 @@ class Game:
                     if game_event[0] == 'get hp':
                         self.client.boss.hp = game_event[1]
                     if game_event[0] == 'boss dead':
-                        for user in self.clients.values():
-                            user.boss_mode = False
-                            user.boss_dead = True
-                            user.boss = None
+                        self.client.boss_mode = False
+                        self.client.boss_dead = True
+                        self.client.boss = None
 
                 except Exception:
                     print(end='')

@@ -138,15 +138,9 @@ def update_world(message):
             send_to_all(data)
 
         elif arr[0] == 'init boss':
-            client_id = arr[1]
             if boss.hp <= 0:
                 boss = Boss()
             send_to_all(['init boss', boss.hp])
-
-        #elif arr[0] == 'boss dead':
-        #    boss = None
-        #    boss_dead = True
-        #    send_to_all(['boss dead'])
 
         elif arr[0] == 'hit boss':
             boss.hp -= DAMAGE_PLAYER
