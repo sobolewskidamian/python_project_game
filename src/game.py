@@ -15,6 +15,8 @@ from generator import Generator
 
 from boss import Boss
 
+from ranking import mycursor, formula, mydb
+
 pygame.init()
 
 SCREENWIDTH = 288
@@ -192,7 +194,10 @@ class Game:
 
             pygame.display.update()
             self.FPSCLOCK.tick(self.FPS)
-
+        result = (str(self.nick), str(self.client.score))
+        mycursor.execute(formula, result)
+        mydb.commit()
+        self.get_rank()
         self.restart()
 
     def action_when_quit_game(self):
@@ -623,7 +628,7 @@ class Game:
                 if self.client.boss.hp < 0:
                     self.client.score += 10
                     pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/round_end.wav"))
-                    pygame.mixer.music.stop()
+                    #pygame.mixer.music.stop()
                     if not self.multiplayer:
                         self.client.boss_mode = False
                         self.client.boss.dead = True
@@ -643,7 +648,7 @@ class Game:
 
     def rocket_explode(self, x, y):
         pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/8bit_bomb_explosion.wav"))
-        pygame.mixer.music.stop()
+        #pygame.mixer.music.stop()
         self.fire_balls_left.append(FireBallLeft(x, y))
         self.fire_balls_right.append(FireBallRight(x, y))
 
@@ -655,3 +660,8 @@ class Game:
             self.send_data(['get hp', self.boss_level])
         else:
             self.client.boss = Boss()
+
+    def get_rank(self):
+        mycursor.execute("select * from ranking order by score desc limit 5")
+        ranking = mycursor.fetchall()
+        print(ranking)
