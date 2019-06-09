@@ -27,10 +27,11 @@ class Square:
         self.boss_dead = True
         self.jump_delay = 0
         self.dead = False
-
+        self.pipe_level = 0
         self.left_pressed = False
         self.right_pressed = False
         self.escape_pressed = False
+        self.pipe_score = 0
 
     def update(self):
         self.y_value += GRAVITY

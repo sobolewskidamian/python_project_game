@@ -15,7 +15,7 @@ outgoing = []
 clients = {}
 client_times = {}
 pipes = {}
-boss = Boss()
+boss = {1: Boss()}
 amount_of_clients = 0
 game_is_running = False
 dead_clients = {}
@@ -45,7 +45,7 @@ def action_when_no_players():
     pipes.clear()
     print_stats()
     dead_clients.clear()
-    boss = Boss()
+    boss = {1: Boss()}
     print_new_game()
     game_is_running = False
     game_id += 1
@@ -134,23 +134,17 @@ def update_world(message):
             data = [arr[0]]
             for id in clients:
                 data.append(clients[id].nick)
-
             send_to_all(data)
 
-        elif arr[0] == 'init boss':
-            if boss.hp <= 0:
-                boss = Boss()
-            send_to_all(['init boss', boss.hp])
-
         elif arr[0] == 'hit boss':
-            boss.hp -= DAMAGE_PLAYER
-            if boss.hp <= 0:
-                send_to_all(['boss dead'])
-            else:
-                send_to_all(['get hp', boss.hp])
+            level = arr[1]
+            boss[level].hp -= DAMAGE_PLAYER
 
         elif arr[0] == 'get hp':
-            send_to_all(['get hp', boss.hp])
+            level = arr[1]
+            if level not in boss:
+                boss[level] = Boss()
+            send_to_all(['get hp', boss[level].hp])
 
     except Exception:
         print(end='')

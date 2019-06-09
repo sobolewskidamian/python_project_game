@@ -285,18 +285,15 @@ class Game:
                         self.last_update_nicks = time.time()
                         game_event.pop(0)
                         self.nicks_before_game = game_event.copy()
-                    if game_event[0] == 'init boss':
-                        self.client.boss.hp = game_event[1]
                     if game_event[0] == 'get hp':
+                        if game_event[1] <= 0:
+                            self.client.boss_mode = False
+                            self.client.boss_dead = True
+                            self.client.boss_level += 1
                         self.client.boss.hp = game_event[1]
-                    if game_event[0] == 'boss dead':
-                        self.client.boss_mode = False
-                        self.client.boss_dead = True
-                        self.client.boss = None
 
                 except Exception:
-                    print(end='')
-
+                    pass
     def show_screen_before_game(self):
         self.clean_screen()
         self.draw_square(self.client)
@@ -395,7 +392,7 @@ class Game:
 
     def draw_boss_hp_bar(self):
         if self.multiplayer:
-            self.send_data(['get hp', self.client.pid])
+            self.send_data(['get hp', self.boss_level])
         pygame.draw.rect(self.SCREEN, (255, 0, 0), pygame.Rect(47, 10, self.client.boss.hp, 10))
 
     def draw_text_at_center(self, text_to_draw, dots, t=time.time(), nicks=False):
@@ -490,7 +487,8 @@ class Game:
                 y_value = pipe.y_value
                 delay = pipe.jump_delay
                 self.client.score += 1
-                if round(self.client.score) % LAP == 0:
+                self.client.pipe_score += 1
+                if round(self.client.pipe_score*self.boss_level) % LAP == 0:
                     if self.client.boss_level + 1 >= self.boss_level:
                         self.boss_level += 1
                         self.client.boss_level += 1
@@ -530,7 +528,7 @@ class Game:
             ['position update', self.client.pid, self.client.x, self.client.total_y, self.client.y, self.client.score])
 
     def get_pipe_size_from_server(self):
-        self.send_data(['pipe location', self.client.pid, self.client.score + 1])
+        self.send_data(['pipe location', self.client.pid, self.client.pipe_score + 1])
 
     def send_boss_request(self):
         self.send_data(['boss', self.client.pid])
@@ -619,7 +617,7 @@ class Game:
             if bullet.if_hit(self.client.boss.x, self.client.boss.y, self.client.boss.width, self.client.boss.height):
                 self.client.boss.hp -= DAMAGE_PLAYER
                 if self.multiplayer:
-                    self.send_data(['hit boss'])
+                    self.send_data(['hit boss', self.boss_level])
                 self.bullets.remove(bullet)
                 self.client.score += 0.25
                 if self.client.boss.hp < 0:
@@ -654,6 +652,6 @@ class Game:
         self.client.boss_dead = False
         boss_intro.play(5)
         if self.multiplayer:
-            self.send_data(['init boss'])
+            self.send_data(['get hp', self.boss_level])
         else:
             self.client.boss = Boss()
