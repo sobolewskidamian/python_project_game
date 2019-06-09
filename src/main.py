@@ -21,7 +21,7 @@ def main():
     FPSCLOCK = pygame.time.Clock()
     SCREEN = pygame.display.set_mode([SCREENWIDTH, SCREENHEIGHT], 0, 32)
     pygame.display.set_caption('Vertical game')
-
+    pygame.mixer.music.stop()
     nick = get_nick()
     # nick = 'damian'
     game = Game(nick, SCREEN, FPSCLOCK, FPS)
@@ -29,6 +29,7 @@ def main():
         if game.game_ended:
             game.game_ended = False
             mode = choose_mode()
+            pygame.mixer.music.stop()
             if mode:
 
                 game.server_address, game.port = '192.168.43.92', 4321#get_multiplayer_data()  #'192.168.43.92', 4321
@@ -42,7 +43,7 @@ def main():
 def choose_mode():
     submit_box = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 66, 150, 32, "Singleplayer")
     submit_box2 = SubmitBox(SCREENWIDTH / 2 - 75, SCREENHEIGHT / 2 - 6, 150, 32, "Multiplayer")
-
+    pygame.mixer.music.stop()
     boxes = [submit_box, submit_box2]
     while not submit_box.get_active() and not submit_box2.get_active():
         clean_screen()

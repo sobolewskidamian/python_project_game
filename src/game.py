@@ -26,6 +26,7 @@ LAP = 5
 #pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
 shot_sound = pygame.mixer.Sound('sounds/laser1.wav')
+boss_intro = pygame.mixer.Sound('sounds/4.wav')
 
 music = pygame.mixer.music.load('sounds/5966459_space-shooter-theme_by_matthewpablo_preview.wav')
 
@@ -66,6 +67,7 @@ class Game:
                 user.boss_dead = True
 
     def restart(self):
+        pygame.mixer.music.stop()
         self.client.boss_dead = True
         self.started = False
         self.boss_level = 1
@@ -91,13 +93,12 @@ class Game:
         self.fire_balls_left.clear()
         self.fire_balls_right.clear()
         pygame.mixer.music.stop()
-        pygame.mixer.music.play(-1)
 
     def play(self):
+        pygame.mixer.music.play(-1)
         self.clean_screen()
         pygame.display.update()
         self.FPSCLOCK.tick(self.FPS)
-        pygame.mixer.Channel(4).play(pygame.mixer.Sound('sounds/5966459_space-shooter-theme_by_matthewpablo_preview.wav'))
 
         if self.multiplayer:
             if not self.server_connected:
@@ -195,6 +196,7 @@ class Game:
         self.game_ended = True
         self.client.dead = True
         self.started = True
+        pygame.mixer.music.stop()
         if self.multiplayer:
             self.delete_client()
             self.s.close()
@@ -204,10 +206,12 @@ class Game:
         for event in pygame.event.get():
             if event.type == QUIT:
                 self.delete_client()
+                pygame.mixer.music.stop()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and event.key == K_ESCAPE:
                 self.action_when_quit_game()
+                pygame.mixer.music.stop()
 
     def ready_steady_go_text(self, number):
         seconds = time.time()
@@ -319,7 +323,7 @@ class Game:
                 self.started = True
 
     def clean_screen(self):
-        self.SCREEN.fill((248, 248, 255))
+        self.SCREEN.fill((200, 255, 255))
 
     def draw_square(self, client):
         for pid in self.clients:
@@ -633,7 +637,7 @@ class Game:
     def add_boss(self):
         self.client.boss_mode = True
         self.client.boss_dead = False
-        pygame.mixer.Channel(1).play(pygame.mixer.Sound('sounds/ufo_highpitch.wav'))
+        boss_intro.play(5)
         if self.multiplayer:
             self.send_data(['init boss', self.client.pid, self.client.boss])
         else:
