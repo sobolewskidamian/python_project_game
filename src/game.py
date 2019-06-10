@@ -22,7 +22,7 @@ pygame.init()
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 BUFFERSIZE = 2048
-LAP = 2
+LAP = 8
 
 # pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
@@ -41,6 +41,7 @@ class Game:
         self.port = 0
         self.server_address = ''
         self.game_id = 0
+        self.times_played = 0
 
         self.boss_level = 1
         self.nick = nick
@@ -62,6 +63,7 @@ class Game:
         self.client_added = False
         self.client = Square(random.randint(1000, 1000000))
         self.clients = {}
+        self.recent_scores = {}
         self.nicks_before_game = []
         self.last_update_nicks = time.time()
         self.client.boss_dead = True
@@ -153,11 +155,13 @@ class Game:
             self.ready_steady_go()
 
         self.show_screen_before_game()
+
+        seconds = time.time()
         while not self.started:
             self.watch_for_click()
             self.update_multiplayer()
-
-        seconds = time.time()
+            if self.times_played > 0:
+                self.write_rank()
         while not self.client.dead:
             self.update_multiplayer()
             self.watch_for_click()
@@ -186,24 +190,26 @@ class Game:
             self.draw_square(self.client)
             self.draw_pipes()
             self.draw_score()
+            self.client.recent_score = self.client.score
             self.draw_hp_bar()
             self.draw_bullets()
+            self.recent_scores[self.client.pid] = self.client.score
             if self.client.boss_mode and not self.client.boss_dead:
                 self.draw_boss()
                 self.draw_boss_hp_bar()
-
             pygame.display.update()
             self.FPSCLOCK.tick(self.FPS)
+
         result = (str(self.nick), str(self.client.score))
         mycursor.execute(formula, result)
         mydb.commit()
-        self.get_rank()
         self.restart()
 
     def action_when_quit_game(self):
         self.game_ended = True
         self.client.dead = True
         self.started = True
+        self.times_played = 0
         pygame.mixer.music.stop()
         if self.multiplayer:
             self.delete_client()
@@ -299,6 +305,7 @@ class Game:
 
                 except Exception:
                     pass
+
     def show_screen_before_game(self):
         self.clean_screen()
         self.draw_square(self.client)
@@ -314,8 +321,7 @@ class Game:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == KEYDOWN and (event.key == K_LEFT or event.key == K_RIGHT or event.key == K_ESCAPE
-                                          or event.key == K_SPACE):
+            if event.type == KEYDOWN and (event.key == K_LEFT or event.key == K_RIGHT):
                 if event.key == K_LEFT:
                     self.client.left_pressed = True
                     for pipe in self.pipes:
@@ -324,13 +330,13 @@ class Game:
                     self.client.right_pressed = True
                     for pipe in self.pipes:
                         pipe.right_pressed = True
-                elif event.key == K_ESCAPE:
+                self.started = True
+            if event.type == KEYDOWN and (event.key == K_ESCAPE or event.key == K_SPACE):
+                if event.key == K_ESCAPE:
                     self.action_when_quit_game()
                 elif event.key == K_SPACE:
                     if self.client.boss_mode:
                         self.add_bullet()
-
-                self.started = True
 
     def clean_screen(self):
         self.SCREEN.fill((200, 255, 255))
@@ -437,13 +443,6 @@ class Game:
             else:
                 self.client.boss.destination += 2 - self.client.boss.destination % 2
 
-    # def wait_for_server(self):
-    # while True:
-    # data = self.s.recv(4096)
-    # if len(data) == 0:
-    # self.s.connect((self.server_address, self.port))
-    # else:
-    # break
     def move_rockets(self):
         for rocket in self.boss_rockets:
             rocket.y += 2
@@ -493,7 +492,7 @@ class Game:
                 delay = pipe.jump_delay
                 self.client.score += 1
                 self.client.pipe_score += 1
-                if round(self.client.pipe_score*self.boss_level) % LAP == 0:
+                if round(self.client.pipe_score * self.boss_level) % LAP == 0:
                     if self.client.boss_level + 1 >= self.boss_level:
                         self.boss_level += 1
                         self.client.boss_level += 1
@@ -587,6 +586,7 @@ class Game:
                 # death_sound.play()
                 pygame.mixer.music.stop()
                 self.client.dead = True
+                self.times_played += 1
 
         for bullet in self.boss_bullets:
             if bullet.if_got_shot(self.client.x, self.client.y, self.client.width, self.client.height):
@@ -596,6 +596,7 @@ class Game:
                     pygame.mixer.music.stop()
                     death_sound.play()
                     self.client.dead = True
+                    self.times_played += 1
 
         for fireball in self.fire_balls_right:
             if fireball.if_got_shot(self.client.x, self.client.y, self.client.width, self.client.height):
@@ -604,6 +605,7 @@ class Game:
                 if self.client.hp < 0:
                     death_sound.play()
                     self.client.dead = True
+                    self.times_played += 1
 
         for fireball in self.fire_balls_left:
             if fireball.if_got_shot(self.client.x, self.client.y, self.client.width, self.client.height):
@@ -612,11 +614,13 @@ class Game:
                 if self.client.hp < 0:
                     death_sound.play()
                     self.client.dead = True
+                    self.times_played += 1
 
         for rocket in self.boss_rockets:
             if rocket.if_got_shot(self.client.x, self.client.y, self.client.width, self.client.height):
                 death_sound.play()
                 self.client.dead = True
+                self.times_played += 1
 
         for bullet in self.bullets:
             if bullet.if_hit(self.client.boss.x, self.client.boss.y, self.client.boss.width, self.client.boss.height):
@@ -628,7 +632,7 @@ class Game:
                 if self.client.boss.hp < 0:
                     self.client.score += 10
                     pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/round_end.wav"))
-                    #pygame.mixer.music.stop()
+                    # pygame.mixer.music.stop()
                     if not self.multiplayer:
                         self.client.boss_mode = False
                         self.client.boss.dead = True
@@ -638,8 +642,8 @@ class Game:
                     self.fire_balls_right.clear()
                     self.fire_balls_left.clear()
                     self.boss_rockets.clear()
-                    #if self.multiplayer:
-                        #self.send_data(['boss dead', self.client.pid])
+                    # if self.multiplayer:
+                    # self.send_data(['boss dead', self.client.pid])
 
         if self.client.y >= SCREENHEIGHT - self.client.height:
             # death_sound.play()
@@ -648,7 +652,7 @@ class Game:
 
     def rocket_explode(self, x, y):
         pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/8bit_bomb_explosion.wav"))
-        #pygame.mixer.music.stop()
+        # pygame.mixer.music.stop()
         self.fire_balls_left.append(FireBallLeft(x, y))
         self.fire_balls_right.append(FireBallRight(x, y))
 
@@ -664,4 +668,64 @@ class Game:
     def get_rank(self):
         mycursor.execute("select * from ranking order by score desc limit 5")
         ranking = mycursor.fetchall()
-        print(ranking)
+        return ranking
+
+    def write_rank(self):
+        pygame.font.init()
+        default_font = pygame.font.get_default_font()
+        font_renderer = pygame.font.Font(default_font, 18)
+        ranking_font = pygame.font.Font(default_font,14)
+        winner_font = pygame.font.Font(default_font, 24)
+        label = font_renderer.render("  Zdobyłeś ", 1, (0, 0, 0))
+        label1 = font_renderer.render("    " + str(self.recent_scores[self.client.pid]), 1, (0, 0, 0))
+        label2 = font_renderer.render("  punktów ", 1, (0, 0, 0))
+        label3 = font_renderer.render("  Ranking: ", 1, (0, 0, 0))
+        win_label = winner_font.render("  WYGRAŁEŚ ", 1, (0, 255, 0))
+        pygame.draw.rect(self.SCREEN, (128, 128, 128), (0, 0, 288, 512))
+        pygame.draw.rect(self.SCREEN, (0, 0, 0), (23, 105, 242, 362))
+        pygame.draw.rect(self.SCREEN, (224, 224, 224), (24, 106, 240, 360))
+        if self.multiplayer and self.is_winner():
+            self.SCREEN.blit(win_label, (60, 70))
+        self.SCREEN.blit(label, (100, 120))
+        if self.recent_scores[self.client.pid] < 10:
+            self.SCREEN.blit(label1, (120, 150))
+        else:
+            self.SCREEN.blit(label1, (105, 150))
+        self.SCREEN.blit(label2, (100, 180))
+        self.SCREEN.blit(label3, (100, 230))
+        list_score = self.get_rank()
+        nick1 = ranking_font.render(list_score[0][0], 1, (0, 0, 0))
+        nick2 = ranking_font.render(list_score[1][0], 1, (0, 0, 0))
+        nick3 = ranking_font.render(list_score[2][0], 1, (0, 0, 0))
+        nick4 = ranking_font.render(list_score[3][0], 1, (0, 0, 0))
+        nick5 = ranking_font.render(list_score[4][0], 1, (0, 0, 0))
+
+        score1 = ranking_font.render(str(list_score[0][1]), 1, (0, 0, 0))
+        score2 = ranking_font.render(str(list_score[1][1]), 1, (0, 0, 0))
+        score3 = ranking_font.render(str(list_score[2][1]), 1, (0, 0, 0))
+        score4 = ranking_font.render(str(list_score[3][1]), 1, (0, 0, 0))
+        score5 = ranking_font.render(str(list_score[4][1]), 1, (0, 0, 0))
+
+        self.SCREEN.blit(nick1, (40, 260))
+        self.SCREEN.blit(nick2, (40, 280))
+        self.SCREEN.blit(nick3, (40, 300))
+        self.SCREEN.blit(nick4, (40, 320))
+        self.SCREEN.blit(nick5, (40, 340))
+
+        self.SCREEN.blit(score1, (220, 260))
+        self.SCREEN.blit(score2, (220, 280))
+        self.SCREEN.blit(score3, (220, 300))
+        self.SCREEN.blit(score4, (220, 320))
+        self.SCREEN.blit(score5, (220, 340))
+
+        con = font_renderer.render("To continue press <- or ->", 1, (0, 0, 0))
+        self.SCREEN.blit(con, (35, 380))
+
+        pygame.display.update()
+
+    def is_winner(self):
+        client_score = self.recent_scores[self.client.pid]
+        for value in self.recent_scores.values():
+            if value > client_score:
+                return False
+        return True

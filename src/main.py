@@ -137,7 +137,10 @@ def get_nick():
 
         pygame.display.flip()
         FPSCLOCK.tick(FPS)
-    return input_box.get_text()
+    if len(input_box.get_text()) > 16:
+        return get_nick()
+    else:
+        return input_box.get_text()
 
 
 if __name__ == '__main__':
