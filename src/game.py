@@ -15,7 +15,7 @@ from generator import Generator
 
 from boss import Boss
 
-from ranking import mycursor, formula, mydb
+from src.ranking import mycursor, formula, mydb
 
 pygame.init()
 
@@ -631,6 +631,7 @@ class Game:
                 self.client.score += 0.25
                 if self.client.boss.hp < 0:
                     self.client.score += 10
+                    self.client.pipe_score = 0
                     pygame.mixer.Sound.play(pygame.mixer.Sound("sounds/round_end.wav"))
                     # pygame.mixer.music.stop()
                     if not self.multiplayer:
@@ -665,7 +666,8 @@ class Game:
         else:
             self.client.boss = Boss()
 
-    def get_rank(self):
+    @staticmethod
+    def get_rank():
         mycursor.execute("select * from ranking order by score desc limit 5")
         ranking = mycursor.fetchall()
         return ranking
