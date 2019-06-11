@@ -15,7 +15,7 @@ from generator import Generator
 
 from boss import Boss
 
-from src.ranking import mycursor, formula, mydb
+from ranking import mycursor, formula, mydb
 
 pygame.init()
 
