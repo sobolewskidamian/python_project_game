@@ -1,7 +1,5 @@
 import pygame
 
-
-
 pygame.init()
 
 SCREENWIDTH = 288

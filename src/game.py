@@ -3,7 +3,7 @@ import sys
 import time
 
 import pygame
-from pygame.locals import *
+from pygame.locals import KEYDOWN, K_ESCAPE, QUIT, K_LEFT, K_RIGHT, K_SPACE
 import pickle
 import select
 import socket
@@ -12,9 +12,7 @@ from bullets import Bullet, SPEED, FireBallLeft, FireBallRight, Rocket, BossBull
 from pipe import Pipe
 from square import Square
 from generator import Generator
-
 from boss import Boss
-
 from ranking import mycursor, formula, mydb
 
 pygame.init()
@@ -24,7 +22,6 @@ SCREENHEIGHT = 512
 BUFFERSIZE = 2048
 LAP = 8
 
-# pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
 shot_sound = pygame.mixer.Sound('sounds/laser1.wav')
 boss_intro = pygame.mixer.Sound('sounds/4.wav')
@@ -68,6 +65,7 @@ class Game:
         self.last_update_nicks = time.time()
         self.client.boss_dead = True
         self.client.boss_mode = False
+        self.ranking_mode = False
         if self.multiplayer:
             for id in self.clients:
                 self.clients[id].boss_mode = False
@@ -84,7 +82,6 @@ class Game:
         self.client_added = False
         self.client.boss_mode = False
         if self.multiplayer:
-            self.delete_client()
             for id in self.clients:
                 self.clients[id].boss_mode = False
                 self.clients[id].boss_dead = True
@@ -160,8 +157,6 @@ class Game:
         while not self.started:
             self.watch_for_click()
             self.update_multiplayer()
-            if self.times_played > 0:
-                self.write_rank()
         while not self.client.dead:
             self.update_multiplayer()
             self.watch_for_click()
@@ -199,6 +194,14 @@ class Game:
                 self.draw_boss_hp_bar()
             pygame.display.update()
             self.FPSCLOCK.tick(self.FPS)
+
+        if self.multiplayer:
+            self.delete_client()
+        self.ranking_mode = True
+        while self.ranking_mode:
+            self.write_rank()
+            self.watch_for_click()
+        self.ranking_mode = False
 
         result = (str(self.nick), str(self.client.score))
         mycursor.execute(formula, result)
@@ -334,6 +337,8 @@ class Game:
             if event.type == KEYDOWN and (event.key == K_ESCAPE or event.key == K_SPACE):
                 if event.key == K_ESCAPE:
                     self.action_when_quit_game()
+                if self.ranking_mode:
+                    self.ranking_mode = False
                 elif event.key == K_SPACE:
                     if self.client.boss_mode:
                         self.add_bullet()
@@ -352,15 +357,17 @@ class Game:
             if abs(actual_client_total_y - self.client.total_y) < SCREENHEIGHT / 2 + self.client.height:
                 pygame.draw.rect(self.SCREEN,
                                  (0, 0, 0),
-                                 pygame.Rect(actual_client_x,
-                                             SCREENHEIGHT / 2 - (
-                                                     actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y,
+                                 pygame.Rect(actual_client_x, SCREENHEIGHT / 2 - (actual_client_total_y
+                                                                                  - self.client.total_y
+                                                                                  + self.client.height / 2)
+                                             - SCREENHEIGHT / 2 + actual_client_y,
                                              self.client.width,
                                              self.client.height))
                 font = pygame.font.Font(None, 15)
                 text = font.render(actual_client_nick, True, (0, 0, 0))
                 self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
-                        actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
+                        actual_client_total_y - self.client.total_y + self.client.height / 2)
+                                        - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
 
         img = pygame.image.load('images/pixil-frame-0.png')
         self.SCREEN.blit(img, (client.x, client.y))
@@ -476,8 +483,8 @@ class Game:
         y_value = 0
         delay = 0
 
-        if len(self.pipes) != 0 and (self.pipes[len(self.pipes) - 1].left_pipe_width == 0 or self.pipes[
-            len(self.pipes) - 1].right_pipe_width == 0):
+        if len(self.pipes) != 0 and (self.pipes[len(self.pipes) - 1].left_pipe_width == 0
+                                     or self.pipes[len(self.pipes) - 1].right_pipe_width == 0):
             self.get_pipe_size_from_server()
 
         for pipe in self.pipes:
@@ -559,7 +566,7 @@ class Game:
         if self.multiplayer:
             self.get_pipe_size_from_server()
         else:
-            left, right = Generator().get_width_left_and_beetween(self.client.score)
+            left, right = Generator().get_width_left_and_between(self.client.score)
             pipe.left_pipe_width = left
             pipe.right_pipe_width = right
 
@@ -676,20 +683,23 @@ class Game:
         pygame.font.init()
         default_font = pygame.font.get_default_font()
         font_renderer = pygame.font.Font(default_font, 18)
-        ranking_font = pygame.font.Font(default_font,14)
+        ranking_font = pygame.font.Font(default_font, 14)
         winner_font = pygame.font.Font(default_font, 24)
         label = font_renderer.render(" You scored ", 1, (0, 0, 0))
         label1 = font_renderer.render("    " + str(self.recent_scores[self.client.pid]), 1, (0, 0, 0))
         label2 = font_renderer.render("  points ", 1, (0, 0, 0))
+
         label3 = font_renderer.render("  Ranking: ", 1, (0, 0, 0))
         win_label = winner_font.render("  WYGRAŁEŚ ", 1, (0, 255, 0))
         pygame.draw.rect(self.SCREEN, (128, 128, 128), (0, 0, 288, 512))
         pygame.draw.rect(self.SCREEN, (0, 0, 0), (23, 105, 242, 362))
         pygame.draw.rect(self.SCREEN, (224, 224, 224), (24, 106, 240, 360))
+
         #if self.multiplayer and self.is_winner():
             #self.SCREEN.blit(win_label, (60, 70))
-        self.SCREEN.blit(label, (95, 120))
-        if self.recent_scores[self.client.pid] < 10:
+
+        self.SCREEN.blit(label, (100, 120))
+        if self.client.score < 10:
             self.SCREEN.blit(label1, (120, 150))
         else:
             self.SCREEN.blit(label1, (105, 150))
@@ -701,13 +711,13 @@ class Game:
             self.SCREEN.blit(ranking_font.render(list_score[i][0], 1, (0, 0, 0)), (40, 260 + 20 * i))
             self.SCREEN.blit(ranking_font.render(str(list_score[i][1]), 1, (0, 0, 0)), (220, 260 + 20 * i))
 
-        con = font_renderer.render("To continue press <- or ->", 1, (0, 0, 0))
+        con = font_renderer.render("To continue press SPACE", 1, (0, 0, 0))
         self.SCREEN.blit(con, (35, 380))
 
         pygame.display.update()
 
     def is_winner(self):
-        client_score = self.recent_scores[self.client.pid]
+        client_score = self.client.score
         for value in self.recent_scores.values():
             if value > client_score:
                 return False

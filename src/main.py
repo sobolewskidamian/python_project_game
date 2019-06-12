@@ -1,6 +1,6 @@
 import sys
 import pygame
-from pygame.locals import *
+from pygame.locals import QUIT, KEYDOWN, K_RETURN, K_KP_ENTER
 
 from objects.inputBox import InputBox
 from objects.submitBox import SubmitBox
@@ -10,10 +10,6 @@ FPS = 70
 SCREENWIDTH = 288
 SCREENHEIGHT = 512
 
-#to do
-# ranking
-# synchronizacja multiplayer
-# gameover
 
 def main():
     global SCREEN, FPSCLOCK
@@ -23,7 +19,6 @@ def main():
     pygame.display.set_caption('Vertical game')
     pygame.mixer.music.stop()
     nick = get_nick()
-    # nick = 'damian'
     game = Game(nick, SCREEN, FPSCLOCK, FPS)
     while True:
         if game.game_ended:
