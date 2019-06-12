@@ -27,7 +27,7 @@ def main():
             pygame.mixer.music.stop()
             if mode:
 
-                game.server_address, game.port = get_multiplayer_data()
+                game.server_address, game.port = '127.0.0.1',4321# get_multiplayer_data()
 
                 game.multiplayer = True
             else:
