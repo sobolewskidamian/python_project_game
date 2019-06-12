@@ -9,6 +9,7 @@ SPEED = 0.7
 DAMAGE_PLAYER = 5
 DAMAGE_BOSS = 10
 
+
 class Bullet:
     def __init__(self, x, y):
         self.x = x
@@ -66,7 +67,7 @@ class BossBullet:
         self.y_change = 0
 
     def if_got_shot(self, x, y, width, height):
-        if self.x + 3 > x and self.x < x + width\
+        if self.x + 3 > x and self.x < x + width \
                 and self.y + 4 > y and self.y < y + height:
             return True
         return False

@@ -3,7 +3,7 @@ import sys
 import time
 
 import pygame
-from pygame.locals import *
+from pygame.locals import KEYDOWN, K_ESCAPE, QUIT, K_LEFT, K_RIGHT, K_SPACE
 import pickle
 import select
 import socket
@@ -12,9 +12,7 @@ from bullets import Bullet, SPEED, FireBallLeft, FireBallRight, Rocket, BossBull
 from pipe import Pipe
 from square import Square
 from generator import Generator
-
 from boss import Boss
-
 from ranking import mycursor, formula, mydb
 
 pygame.init()
@@ -24,7 +22,6 @@ SCREENHEIGHT = 512
 BUFFERSIZE = 2048
 LAP = 8
 
-# pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=2048)
 death_sound = pygame.mixer.Sound('sounds/death.wav')
 shot_sound = pygame.mixer.Sound('sounds/laser1.wav')
 boss_intro = pygame.mixer.Sound('sounds/4.wav')
@@ -352,15 +349,17 @@ class Game:
             if abs(actual_client_total_y - self.client.total_y) < SCREENHEIGHT / 2 + self.client.height:
                 pygame.draw.rect(self.SCREEN,
                                  (0, 0, 0),
-                                 pygame.Rect(actual_client_x,
-                                             SCREENHEIGHT / 2 - (
-                                                     actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y,
+                                 pygame.Rect(actual_client_x, SCREENHEIGHT / 2 - (actual_client_total_y
+                                                                                  - self.client.total_y
+                                                                                  + self.client.height / 2)
+                                             - SCREENHEIGHT / 2 + actual_client_y,
                                              self.client.width,
                                              self.client.height))
                 font = pygame.font.Font(None, 15)
                 text = font.render(actual_client_nick, True, (0, 0, 0))
                 self.SCREEN.blit(text, (actual_client_x, SCREENHEIGHT / 2 - (
-                        actual_client_total_y - self.client.total_y + self.client.height / 2) - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
+                        actual_client_total_y - self.client.total_y + self.client.height / 2)
+                                        - SCREENHEIGHT / 2 + actual_client_y + self.client.height))
 
         img = pygame.image.load('images/pixil-frame-0.png')
         self.SCREEN.blit(img, (client.x, client.y))
@@ -476,8 +475,8 @@ class Game:
         y_value = 0
         delay = 0
 
-        if len(self.pipes) != 0 and (self.pipes[len(self.pipes) - 1].left_pipe_width == 0 or self.pipes[
-            len(self.pipes) - 1].right_pipe_width == 0):
+        if len(self.pipes) != 0 and (self.pipes[len(self.pipes) - 1].left_pipe_width == 0
+                                     or self.pipes[len(self.pipes) - 1].right_pipe_width == 0):
             self.get_pipe_size_from_server()
 
         for pipe in self.pipes:
@@ -559,7 +558,7 @@ class Game:
         if self.multiplayer:
             self.get_pipe_size_from_server()
         else:
-            left, right = Generator().get_width_left_and_beetween(self.client.score)
+            left, right = Generator().get_width_left_and_between(self.client.score)
             pipe.left_pipe_width = left
             pipe.right_pipe_width = right
 
@@ -676,7 +675,7 @@ class Game:
         pygame.font.init()
         default_font = pygame.font.get_default_font()
         font_renderer = pygame.font.Font(default_font, 18)
-        ranking_font = pygame.font.Font(default_font,14)
+        ranking_font = pygame.font.Font(default_font, 14)
         winner_font = pygame.font.Font(default_font, 24)
         label = font_renderer.render("  Zdobyłeś ", 1, (0, 0, 0))
         label1 = font_renderer.render("    " + str(self.recent_scores[self.client.pid]), 1, (0, 0, 0))

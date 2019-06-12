@@ -125,7 +125,7 @@ def update_world(message):
             if client_id not in clients: return
 
             if score not in pipes:
-                left, right = Generator().get_width_left_and_beetween(score)
+                left, right = Generator().get_width_left_and_between(score)
                 pipes[score] = [left, right]
 
             send_to_all(['pipe location', [client_id, pipes[score][0], pipes[score][1]]])

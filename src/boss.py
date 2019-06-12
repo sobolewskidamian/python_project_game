@@ -1,5 +1,3 @@
-
-
 class Boss:
     def __init__(self):
         self.hp = 200
@@ -9,4 +7,3 @@ class Boss:
         self.height = 75
         self.damage = 34
         self.destination = 100
-
